@@ -247,7 +247,7 @@ func (rc *RogerChallenger) getChallengeRankedSteps(stepsChallenge StepsChallenge
 
 	ch, err := rc.channelInfoFinder.GetChannelInfo(stepsChallenge.ChannelID)
 	if err != nil {
-		return userSteps, err
+		return userSteps, errors.Wrapf(err, "error getting channel members for channel id [%s]", stepsChallenge.ChannelID)
 	}
 
 	usersToFetch := make([]string, 0)
@@ -257,6 +257,7 @@ func (rc *RogerChallenger) getChallengeRankedSteps(stepsChallenge StepsChallenge
 		}
 	}
 
+	// TODO: Create a worker pool and submit the work with a parallelism of 4
 	for _, user := range usersToFetch {
 		clientAccess := fitbitUsers[user]
 
