@@ -12,6 +12,9 @@ type RogerChallenger struct {
 	baseURL            string
 	fitbitAuthBaseURL  string
 	fitbitAPIBaseURL   string
+	slackBaseURL       string
+	slackClientID      string
+	slackClientSecret  string
 	fitbitClientID     string
 	fitbitClientSecret string
 	storer             Datastorer
@@ -142,14 +145,25 @@ func OptionFitbitURLs(fitbitAuthBaseURL string, fitbitAPIBaseUrl string) Option 
 	}
 }
 
+// OptionSlackBaseURL overrides the Slack base URL
+func OptionSlackBaseURL(slackBaseURL string) Option {
+	return func(rc *RogerChallenger) (err error) {
+		rc.slackBaseURL = slackBaseURL
+		return nil
+	}
+}
+
 // New creates a new instance of RogerChallenger with a baseURL, fitbit client id and secret as well as all of its required
 // dependencies via Option
-func New(baseURL string, fitbitClientID string, fitbitClientSecret string, opts ...Option) (rc *RogerChallenger, err error) {
+func New(baseURL string, fitbitClientID string, fitbitClientSecret string, slackClientID string, slackClientSecret string, opts ...Option) (rc *RogerChallenger, err error) {
 	rc = new(RogerChallenger)
 
 	rc.baseURL = baseURL
 	rc.fitbitAuthBaseURL = defaultFitbitAuthBaseURL
 	rc.fitbitAPIBaseURL = defaultFitbitAPIBaseURL
+	rc.slackBaseURL = defaultSlackBaseURL
+	rc.slackClientID = slackClientID
+	rc.slackClientSecret = slackClientSecret
 	rc.fitbitClientID = fitbitClientID
 	rc.fitbitClientSecret = fitbitClientSecret
 
