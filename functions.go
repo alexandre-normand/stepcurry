@@ -37,10 +37,10 @@ const (
 
 // Server paths
 const (
-	updateChallengePath = "updateChallenge"
-	oauthCallbackPath   = "handleFitbitAuth"
-	linkAccountPath     = "linkAccount"
-	startChallengePath  = "challenge"
+	updateChallengePath = "UpdateChallenge"
+	oauthCallbackPath   = "HandleFitbitAuth"
+	linkAccountPath     = "LinkAccount"
+	startChallengePath  = "Challenge"
 )
 
 // Date formats
@@ -184,12 +184,12 @@ func parseSlackRequest(requestBody string) (params map[string]string, err error)
 	return params, nil
 }
 
-// StartChallenge handles an incoming slack request in response to a user invoking /fitbit-challenge
+// Challenge handles an incoming slack request in response to a user invoking /fitbit-challenge
 // This is done by
 //   1. Persisting a new challenge if one doesn't already exist for the channel/date
 //   2. Announcing the challenge on the channel
 //   3. Scheduling a first challenge ranking update
-func (rc *RogerChallenger) StartChallenge(w http.ResponseWriter, r *http.Request) {
+func (rc *RogerChallenger) Challenge(w http.ResponseWriter, r *http.Request) {
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		log.Printf("Error reading request body: %s", err.Error())
@@ -281,6 +281,8 @@ func (rc *RogerChallenger) StartChallenge(w http.ResponseWriter, r *http.Request
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
+
+		return
 	}
 
 	stepsChallenge := StepsChallenge{ChallengeID: challengeID, Active: true, CreatorID: userID, CreationTime: creationTime, TimezoneID: timezoneID}
@@ -420,7 +422,7 @@ func (rc *RogerChallenger) renderStepsRanking(rankedUsers []UserSteps) (renderBl
 	return renderBlocks
 }
 
-func (rc *RogerChallenger) ChallengeStandings(w http.ResponseWriter, r *http.Request) {
+func (rc *RogerChallenger) Standings(w http.ResponseWriter, r *http.Request) {
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		log.Printf("Error reading request body: %s", err.Error())

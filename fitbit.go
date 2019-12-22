@@ -68,9 +68,9 @@ type Goals struct {
 	Steps int `json:"steps,omitempty"`
 }
 
-// HandleFitbitAuthorized receives the oauth callback from Fitbit after a user has logged in and
+// HandleFitbitAuth receives the oauth callback from Fitbit after a user has logged in and
 // consented to the access
-func (rc *RogerChallenger) HandleFitbitAuthorized(w http.ResponseWriter, r *http.Request) {
+func (rc *RogerChallenger) HandleFitbitAuth(w http.ResponseWriter, r *http.Request) {
 	codes, ok := r.URL.Query()["code"]
 	if !ok {
 		http.Error(w, "Missing authorization code", http.StatusBadRequest)

@@ -4,11 +4,14 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"github.com/nlopes/slack"
 	"github.com/pkg/errors"
+	"github.com/spf13/cast"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 )
 
@@ -24,6 +27,11 @@ type SlackAccess struct {
 	TeamName    string  `json:"team_name,omitempty"`
 	TeamID      string  `json:"team_id,omitempty"`
 	Bot         BotInfo `json:"bot,omitempty"`
+}
+
+type SlackError struct {
+	Ok    bool   `json:"ok"`
+	Error string `json:"error"`
 }
 
 type BotInfo struct {
@@ -53,7 +61,22 @@ func (rc *RogerChallenger) HandleSlackAuth(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	log.Printf("Got slack access: %v\n", slackAccess)
+	err = saveSecret(os.Getenv(projectIDEnv), slackTokenKey, slackAccess.AccessToken)
+	if err != nil {
+		log.Printf("Error saving slack token: %s", err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	slackClient := slack.New(slackAccess.AccessToken, slack.OptionDebug(cast.ToBool(os.Getenv(debugEnv))))
+	err = rc.ReapplyOptions(OptionUserInfoFinder(slackClient), OptionMessenger(slackClient), OptionChannelInfoFinder(slackClient))
+	if err != nil {
+		log.Printf("Error applying new slack client: %s", err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Write([]byte(fmt.Sprintf("<html><head><meta http-equiv=\"refresh\" content=\"0;URL=slack://open\"></head></html>")))
 }
 
 func (rc *RogerChallenger) exchangeSlackAuthCodeForToken(code string) (slackAccess SlackAccess, err error) {
@@ -87,7 +110,12 @@ func (rc *RogerChallenger) exchangeSlackAuthCodeForToken(code string) (slackAcce
 		return slackAccess, fmt.Errorf("error getting slack access token [%s]: %s", resp.Status, tokenBody)
 	}
 
-	log.Printf("token body is [%s]", tokenBody)
+	var slackError SlackError
+	json.Unmarshal(tokenBody, &slackError)
+	if slackError.Error != "" {
+		return slackAccess, errors.New(slackError.Error)
+	}
+
 	err = json.Unmarshal(tokenBody, &slackAccess)
 	if err != nil {
 		return slackAccess, errors.Wrap(err, "error decoding slack access response")

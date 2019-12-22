@@ -200,3 +200,14 @@ func New(baseURL string, fitbitClientID string, fitbitClientSecret string, slack
 
 	return rc, nil
 }
+
+func (rc *RogerChallenger) ReapplyOptions(opts ...Option) (err error) {
+	for _, apply := range opts {
+		err := apply(rc)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}

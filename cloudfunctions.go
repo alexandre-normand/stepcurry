@@ -1,15 +1,11 @@
 package rogerchallenger
 
 import (
-	"context"
-	"encoding/base64"
 	"fmt"
 	"github.com/nlopes/slack"
 	"github.com/spf13/cast"
-	secretmanager "google.golang.org/api/secretmanager/v1beta1"
 	"net/http"
 	"os"
-	"strings"
 )
 
 // Secret names
@@ -69,72 +65,12 @@ func inferBaseURL(projectID string, region string) (baseURL string) {
 	return fmt.Sprintf("https://%s-%s.cloudfunctions.net", region, projectID)
 }
 
-func loadSecrets(projectID string) (slackToken, slackClientID, slackClientSecret, slackSigningSecret, fitbitClientID, fitbitClientSecret string, err error) {
-	ctx := context.Background()
-	ss, err := secretmanager.NewService(ctx)
-	if err != nil {
-		return "", "", "", "", "", "", err
-	}
-
-	psvs := secretmanager.NewProjectsSecretsVersionsService(ss)
-	slackToken, err = getSecret(psvs, projectID, slackTokenKey)
-	if err != nil {
-		return "", "", "", "", "", "", err
-	}
-
-	slackSigningSecret, err = getSecret(psvs, projectID, signingSecretKey)
-	if err != nil {
-		return "", "", "", "", "", "", err
-	}
-
-	slackClientID, err = getSecret(psvs, projectID, slackClientIDKey)
-	if err != nil {
-		return "", "", "", "", "", "", err
-	}
-
-	slackClientSecret, err = getSecret(psvs, projectID, slackClientSecretKey)
-	if err != nil {
-		return "", "", "", "", "", "", err
-	}
-
-	fitbitClientID, err = getSecret(psvs, projectID, fitbitClientIDKey)
-	if err != nil {
-		return "", "", "", "", "", "", err
-	}
-
-	fitbitClientSecret, err = getSecret(psvs, projectID, fitbitClientSecretKey)
-	if err != nil {
-		return "", "", "", "", "", "", err
-	}
-
-	return slackToken, slackClientID, slackClientSecret, slackSigningSecret, fitbitClientID, fitbitClientSecret, nil
-}
-
-func getSecret(psvs *secretmanager.ProjectsSecretsVersionsService, projectID string, key string) (value string, err error) {
-	request := psvs.Access(formatSecretName(projectID, key))
-	resp, err := request.Do()
-	if err != nil {
-		return "", err
-	}
-
-	secret, err := base64.StdEncoding.DecodeString(resp.Payload.Data)
-	if err != nil {
-		return "", err
-	}
-
-	return strings.TrimSpace(string(secret)), nil
-}
-
-func formatSecretName(projectID string, key string) (qualifiedName string) {
-	return fmt.Sprintf("projects/%s/secrets/%s/versions/latest", projectID, key)
-}
-
 func LinkAccount(w http.ResponseWriter, r *http.Request) {
 	rc.StartFitbitOauthFlow(w, r)
 }
 
 func Challenge(w http.ResponseWriter, r *http.Request) {
-	rc.StartChallenge(w, r)
+	rc.Challenge(w, r)
 }
 
 func UpdateChallenge(w http.ResponseWriter, r *http.Request) {
@@ -142,11 +78,11 @@ func UpdateChallenge(w http.ResponseWriter, r *http.Request) {
 }
 
 func HandleFitbitAuth(w http.ResponseWriter, r *http.Request) {
-	rc.HandleFitbitAuthorized(w, r)
+	rc.HandleFitbitAuth(w, r)
 }
 
 func Standings(w http.ResponseWriter, r *http.Request) {
-	rc.ChallengeStandings(w, r)
+	rc.Standings(w, r)
 }
 
 func InvokeSlackAuth(w http.ResponseWriter, r *http.Request) {
