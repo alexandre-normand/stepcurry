@@ -245,7 +245,12 @@ func (rc *RogerChallenger) getChallengeRankedSteps(stepsChallenge StepsChallenge
 		fitbitUsers[ca.SlackUser] = ca
 	}
 
-	ch, err := rc.channelInfoFinder.GetChannelInfo(stepsChallenge.ChannelID)
+	svcs, err := rc.Route(stepsChallenge.TeamID)
+	if err != nil {
+		return userSteps, errors.Wrapf(err, "error getting channel members for channel id [%s]", stepsChallenge.ChannelID)
+	}
+
+	ch, err := svcs.channelInfoFinder.GetChannelInfo(stepsChallenge.ChannelID)
 	if err != nil {
 		return userSteps, errors.Wrapf(err, "error getting channel members for channel id [%s]", stepsChallenge.ChannelID)
 	}

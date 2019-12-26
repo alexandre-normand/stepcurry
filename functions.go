@@ -91,6 +91,11 @@ type StepsChallenge struct {
 	RankedUsers  []UserSteps `datastore:"rankedUsers,noindex"`
 }
 
+// BotInfo holds the bot info
+type BotInfo struct {
+	UserID string `datastore:"botUserID"`
+}
+
 // ActionResponse holds data for a response to a slash command or action
 type ActionResponse struct {
 	ResponseType    string        `json:"response_type,omitempty"`
@@ -251,19 +256,26 @@ func (rc *RogerChallenger) Challenge(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, _, err = rc.messenger.PostMessage(channel, slack.MsgOptionText(fmt.Sprintf("<@%s> started a steps challenge! Get moving :wind_blowing_face::athletic_shoe:. If you haven't linked your fitbit account already, type `/roger-link` and join in on the challenge.", userID), false))
+	svcs, err := rc.Route(teamID)
+	if err != nil {
+		log.Printf("Error getting api services for team id [%s]: %s", teamID, err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	_, _, err = svcs.messenger.PostMessage(channel, slack.MsgOptionText(fmt.Sprintf("<@%s> started a steps challenge! Get moving :wind_blowing_face::athletic_shoe:. If you haven't linked your fitbit account already, type `/roger-link` and join in on the challenge.", userID), false))
 	if err != nil {
 		// TODO: consider an additional layered fallback strategy where we use https://godoc.org/github.com/nlopes/slack#Client.JoinConversation to try and join (that would work for public channels)
 		// before falling back to a message with instructions
 		if err.Error() == "channel_not_found" || err.Error() == "not_in_channel" {
-			bot, err := rc.userInfoFinder.GetBotInfo("")
+			botUserID, err := svcs.botIdentificator.GetBotID()
 			if err != nil {
 				log.Printf("Error getting bot info to send membership warning message: %s", err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}
 
-			membershipWarnMsg := ActionResponse{ResponseType: "ephemeral", ReplaceOriginal: false, Text: fmt.Sprintf("I can't start a challenge in a channel or conversation I'm not a member of. Add me, <@%s> and try again :bow:", bot.ID)}
+			membershipWarnMsg := ActionResponse{ResponseType: "ephemeral", ReplaceOriginal: false, Text: fmt.Sprintf("I can't start a challenge in a channel or conversation I'm not a member of. Add me, <@%s> and try again :bow:", botUserID)}
 			resp, err := req.Post(responseURL, req.BodyJSON(&membershipWarnMsg))
 			if err != nil || resp.Response().StatusCode != 200 {
 				if err != nil {
@@ -330,14 +342,19 @@ func (rc *RogerChallenger) refreshChallenge(stepsChallenge StepsChallenge) (err 
 		return errors.Wrapf(err, "error persisting challenge [%s.%s]", stepsChallenge.TeamID, stepsChallenge.ChallengeID.Key())
 	}
 
+	svcs, err := rc.Route(stepsChallenge.TeamID)
+	if err != nil {
+		return errors.Wrapf(err, "error getting api services for team ID [%s]", stepsChallenge.TeamID)
+	}
+
 	renderBlocks := make([]slack.Block, 0)
-	renderedRanking := rc.renderStepsRanking(rankedUsers)
+	renderedRanking := rc.renderStepsRanking(svcs, rankedUsers)
 	if len(renderedRanking) > 0 {
 		bannerText := updateBanners[selectionRandom.Intn(len(updateBanners))]
 		renderBlocks = append(renderBlocks, slack.NewSectionBlock(slack.NewTextBlockObject("mrkdwn", bannerText, false, false), nil, nil))
 		renderBlocks = append(renderBlocks, renderedRanking...)
 
-		_, _, err = rc.messenger.PostMessage(stepsChallenge.ChannelID, slack.MsgOptionText(bannerText, false), slack.MsgOptionBlocks(renderBlocks...))
+		_, _, err = svcs.messenger.PostMessage(stepsChallenge.ChannelID, slack.MsgOptionText(bannerText, false), slack.MsgOptionBlocks(renderBlocks...))
 		if err != nil {
 			return errors.Wrap(err, "error sending slack message")
 		}
@@ -373,14 +390,19 @@ func (rc *RogerChallenger) wrapUpChallenge(stepsChallenge StepsChallenge) (err e
 		return errors.Wrapf(err, "Error persisting final challenge [%s.%s]", stepsChallenge.TeamID, stepsChallenge.ChallengeID.Key())
 	}
 
+	svcs, err := rc.Route(stepsChallenge.TeamID)
+	if err != nil {
+		return errors.Wrapf(err, "error getting api services for team ID [%s]", stepsChallenge.TeamID)
+	}
+
 	renderBlocks := make([]slack.Block, 0)
-	renderedRanking := rc.renderStepsRanking(rankedUsers)
+	renderedRanking := rc.renderStepsRanking(svcs, rankedUsers)
 	if len(renderedRanking) > 0 {
 		bannerText := winnerAccouncementBanners[selectionRandom.Intn(len(winnerAccouncementBanners))]
 		renderBlocks = append(renderBlocks, slack.NewSectionBlock(slack.NewTextBlockObject("mrkdwn", bannerText, false, false), nil, nil))
 		renderBlocks = append(renderBlocks, renderedRanking...)
 
-		_, _, err = rc.messenger.PostMessage(stepsChallenge.ChannelID, slack.MsgOptionText(bannerText, false), slack.MsgOptionBlocks(renderBlocks...))
+		_, _, err = svcs.messenger.PostMessage(stepsChallenge.ChannelID, slack.MsgOptionText(bannerText, false), slack.MsgOptionBlocks(renderBlocks...))
 		if err != nil {
 			return errors.Wrap(err, "error sending slack message")
 		}
@@ -390,7 +412,7 @@ func (rc *RogerChallenger) wrapUpChallenge(stepsChallenge StepsChallenge) (err e
 }
 
 // renderStepsRanking renders the user steps ranking as slack blocks to me included in a slack message
-func (rc *RogerChallenger) renderStepsRanking(rankedUsers []UserSteps) (renderBlocks []slack.Block) {
+func (rc *RogerChallenger) renderStepsRanking(services TeamServices, rankedUsers []UserSteps) (renderBlocks []slack.Block) {
 	renderBlocks = make([]slack.Block, 0)
 
 	if len(rankedUsers) == 0 {
@@ -400,7 +422,7 @@ func (rc *RogerChallenger) renderStepsRanking(rankedUsers []UserSteps) (renderBl
 	// TODO create a worker pool and submit work with parallelism of 4
 	rank := 1
 	for _, us := range rankedUsers {
-		userInfo, err := rc.userInfoFinder.GetUserInfo(us.UserID)
+		userInfo, err := services.userInfoFinder.GetUserInfo(us.UserID)
 		profileImage := ""
 		realName := ""
 		if err != nil {
@@ -544,16 +566,17 @@ func (rc *RogerChallenger) UpdateChallenge(w http.ResponseWriter, r *http.Reques
 	case !now.After(endScheduledDayUpdates):
 		scheduledUpdate := now.Add(time.Duration(1) + time.Hour)
 		log.Printf("Challenge [%s.%s] scheduled for a regular update at [%s]", stepsChallenge.TeamID, stepsChallenge.ChallengeID.Key(), scheduledUpdate)
-		err = rc.scheduleChallengeUpdate(challengeID, scheduledUpdate)
-		if err != nil {
-			log.Printf("Error scheduling next challenge update: %s", err.Error())
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
 
 		err = rc.refreshChallenge(stepsChallenge)
 		if err != nil {
 			log.Printf("Error refreshing challenge status: %s", err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		err = rc.scheduleChallengeUpdate(challengeID, scheduledUpdate)
+		if err != nil {
+			log.Printf("Error scheduling next challenge update: %s", err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}

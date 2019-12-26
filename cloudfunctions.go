@@ -2,8 +2,6 @@ package rogerchallenger
 
 import (
 	"fmt"
-	"github.com/nlopes/slack"
-	"github.com/spf13/cast"
 	"net/http"
 	"os"
 )
@@ -36,7 +34,7 @@ func init() {
 	projectID := os.Getenv(projectIDEnv)
 	region := os.Getenv(regionEnv)
 
-	slackToken, slackClientID, slackClientSecret, slackSigningSecret, fitbitClientID, fitbitClientSecret, err := loadSecrets(projectID)
+	slackClientID, slackClientSecret, slackSigningSecret, fitbitClientID, fitbitClientSecret, err := loadSecrets(projectID)
 	if err != nil {
 		panic(fmt.Sprintf("Failed to load Roger Challenger secrets: %s", err.Error()))
 	}
@@ -51,9 +49,13 @@ func init() {
 		panic(fmt.Sprintf("Failed to initialize Cloud Tasks Client: %s", err.Error()))
 	}
 
-	slackClient := slack.New(slackToken, slack.OptionDebug(cast.ToBool(os.Getenv(debugEnv))))
+	tokenManager := &MultiTenantTokenManager{}
+	router, err := NewMultiTenantRouter(projectID, storer, tokenManager, tokenManager)
+	if err != nil {
+		panic(fmt.Sprintf("Failed to initialize Roger Challenger: %s", err.Error()))
+	}
 
-	roger, err := New(inferBaseURL(projectID, region), fitbitClientID, fitbitClientSecret, slackClientID, slackClientSecret, OptionSlackVerifier(slackSigningSecret), OptionStorer(storer), OptionUserInfoFinder(slackClient), OptionMessenger(slackClient), OptionChannelInfoFinder(slackClient), OptionTaskScheduler(taskScheduler))
+	roger, err := New(inferBaseURL(projectID, region), fitbitClientID, fitbitClientSecret, slackClientID, slackClientSecret, OptionSlackVerifier(slackSigningSecret), OptionStorer(storer), OptionTeamRouter(router), OptionTaskScheduler(taskScheduler))
 	if err != nil {
 		panic(fmt.Sprintf("Failed to initialize Roger Challenger: %s", err.Error()))
 	}

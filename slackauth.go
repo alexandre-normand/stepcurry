@@ -1,12 +1,11 @@
 package rogerchallenger
 
 import (
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"github.com/nlopes/slack"
 	"github.com/pkg/errors"
-	"github.com/spf13/cast"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -15,28 +14,32 @@ import (
 	"strings"
 )
 
-var slackScopes = [...]string{"chat:write", "users:read", "users.profile:read", "channels:read", "commands"}
+var slackScopes = [...]string{"chat:write", "users:read", "users.profile:read", "channels:read", "groups:read", "im:read", "mpim:read", "commands"}
 
 const (
 	defaultSlackBaseURL = "https://slack.com"
 )
 
-type SlackAccess struct {
-	AccessToken string  `json:"access_token"`
-	Scope       string  `json:"scope"`
-	TeamName    string  `json:"team_name,omitempty"`
-	TeamID      string  `json:"team_id,omitempty"`
-	Bot         BotInfo `json:"bot,omitempty"`
+type SlackAuthResponse struct {
+	Ok          bool       `json:"ok,omitempty"`
+	AppID       string     `json:"app_id,omitempty"`
+	AuthedUser  AuthedUser `json:"authed_user,omitempty"`
+	Scope       string     `json:"scope,omitempty"`
+	TokenType   string     `json:"token_type,omitempty"`
+	AccessToken string     `json:"access_token,omitempty"`
+	BotUserID   string     `json:"bot_user_id,omitempty"`
+	Team        TeamInfo   `json:"team,omitempty"`
+	Enterprise  string     `json:"enterprise,omitempty"`
+	Error       string     `json:"error,omitempty"`
 }
 
-type SlackError struct {
-	Ok    bool   `json:"ok"`
-	Error string `json:"error"`
+type AuthedUser struct {
+	ID string `json:"id,omitempty"`
 }
 
-type BotInfo struct {
-	UserID      string `json:"bot_user_id,omitempty"`
-	AccessToken string `json:"bot_access_token,omitempty"`
+type TeamInfo struct {
+	ID   string `json:"id,omitempty"`
+	Name string `json:"name,omitempty"`
 }
 
 func (rc *RogerChallenger) InvokeSlackAuth(w http.ResponseWriter, r *http.Request) {
@@ -54,32 +57,35 @@ func (rc *RogerChallenger) HandleSlackAuth(w http.ResponseWriter, r *http.Reques
 
 	code := codes[0]
 
-	slackAccess, err := rc.exchangeSlackAuthCodeForToken(code)
+	authResp, err := rc.exchangeSlackAuthCodeForToken(code)
 	if err != nil {
 		log.Printf("Error getting slack access: %s", err.Error())
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	err = saveSecret(os.Getenv(projectIDEnv), slackTokenKey, slackAccess.AccessToken)
+	tokenSaver := &MultiTenantTokenManager{}
+	err = tokenSaver.Save(os.Getenv(projectIDEnv), authResp.Team.ID, authResp.AccessToken)
 	if err != nil {
 		log.Printf("Error saving slack token: %s", err.Error())
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	slackClient := slack.New(slackAccess.AccessToken, slack.OptionDebug(cast.ToBool(os.Getenv(debugEnv))))
-	err = rc.ReapplyOptions(OptionUserInfoFinder(slackClient), OptionMessenger(slackClient), OptionChannelInfoFinder(slackClient))
+	ctx := context.Background()
+	botInfo := BotInfo{UserID: authResp.BotUserID}
+	k := NewKeyWithNamespace("BotInfo", authResp.Team.ID, "Bot", nil)
+	_, err = rc.storer.Put(ctx, k, &botInfo)
 	if err != nil {
-		log.Printf("Error applying new slack client: %s", err.Error())
+		log.Printf("Error persisting bot info [%s] for team [%s]: %s", botInfo.UserID, authResp.Team.ID, err.Error())
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	w.Write([]byte(fmt.Sprintf("<html><head><meta http-equiv=\"refresh\" content=\"0;URL=slack://open\"></head></html>")))
+	w.Write([]byte(fmt.Sprintf("<html><head><meta http-equiv=\"refresh\" content=\"0;URL=https://slack.com/app_redirect?app=%s&team=%s\"></head></html>", "ARQ0BSWJ3", authResp.Team.ID)))
 }
 
-func (rc *RogerChallenger) exchangeSlackAuthCodeForToken(code string) (slackAccess SlackAccess, err error) {
+func (rc *RogerChallenger) exchangeSlackAuthCodeForToken(code string) (authResp SlackAuthResponse, err error) {
 	redirectURI := fmt.Sprintf("%s/%s", rc.baseURL, "HandleSlackAuth")
 
 	v := url.Values{}
@@ -93,7 +99,7 @@ func (rc *RogerChallenger) exchangeSlackAuthCodeForToken(code string) (slackAcce
 
 	req, err := http.NewRequest("POST", tokenURL, body)
 	if err != nil {
-		return slackAccess, errors.Wrap(err, "error creating slack access token request")
+		return authResp, errors.Wrap(err, "error creating slack access token request")
 	}
 
 	req.Header.Add("Content-type", "application/x-www-form-urlencoded")
@@ -102,24 +108,22 @@ func (rc *RogerChallenger) exchangeSlackAuthCodeForToken(code string) (slackAcce
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		return slackAccess, errors.Wrap(err, "error executing slack access token request")
+		return authResp, errors.Wrap(err, "error executing slack access token request")
 	}
 
 	tokenBody, err := ioutil.ReadAll(resp.Body)
 	if resp.StatusCode < 200 || resp.StatusCode > 299 {
-		return slackAccess, fmt.Errorf("error getting slack access token [%s]: %s", resp.Status, tokenBody)
+		return authResp, fmt.Errorf("error getting slack access token [%s]: %s", resp.Status, tokenBody)
 	}
 
-	var slackError SlackError
-	json.Unmarshal(tokenBody, &slackError)
-	if slackError.Error != "" {
-		return slackAccess, errors.New(slackError.Error)
-	}
-
-	err = json.Unmarshal(tokenBody, &slackAccess)
+	err = json.Unmarshal(tokenBody, &authResp)
 	if err != nil {
-		return slackAccess, errors.Wrap(err, "error decoding slack access response")
+		return authResp, errors.Wrap(err, "error decoding slack auth response")
 	}
 
-	return slackAccess, nil
+	if !authResp.Ok {
+		return authResp, errors.New(authResp.Error)
+	}
+
+	return authResp, nil
 }
