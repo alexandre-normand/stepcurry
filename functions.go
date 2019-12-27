@@ -65,9 +65,9 @@ var selectionRandom = rand.New(rand.NewSource(time.Now().Unix()))
 
 // ClientAccess holds the data linking a slack user to their fitbit account
 type ClientAccess struct {
-	SlackUser string `datastore:"slackUser"`
-	SlackTeam string `datastore:"slackTeam"`
-	FitbitApiAccess
+	SlackUser  string `datastore:"slackUser"`
+	SlackTeam  string `datastore:"slackTeam"`
+	FitbitUser string `datastore:"fitbitUser"`
 }
 
 // ChallengeID holds the attributes composing a challenge identifier
