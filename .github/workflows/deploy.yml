@@ -1,8 +1,7 @@
 name: Deploy
 
 on:
-  release:
-    types: [published]
+  create:
 
 jobs:
   build:
@@ -10,6 +9,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Abort if not a tag
+        run: git show-ref --verify refs/tags/$GITHUB_REF
+        
       - name: Check out code into the Go module directory
         uses: actions/checkout@v1
         with:
@@ -24,8 +26,8 @@ jobs:
              go build . && \
              go mod vendor
 
-      - uses: actions-hub/gcloud@master
-        env:
-          PROJECT_ID: rogerchallenger
-          APPLICATION_CREDENTIALS: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}
-          CLI: cd $GITHUB_WORKSPACE/cloudfunctions && landler | xargs -I % gcloud functions deploy % --runtime go111 --trigger-http --allow-unauthenticated
+      - uses: GoogleCloudPlatform/github-actions/setup-gcloud@master
+        with:
+          version: '270.0.0'          
+          service_account_key: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}
+      - run: cd $GITHUB_WORKSPACE/cloudfunctions && landler | xargs -I % gcloud functions deploy % --runtime go111 --trigger-http --allow-unauthenticated
