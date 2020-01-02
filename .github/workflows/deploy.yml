@@ -1,17 +1,15 @@
-name: Deploy
+name: Deploy on new Tag
 
 on:
-  create:
-
+  push:
+    tags:
+    - '*'
 jobs:
   build:
 
     runs-on: ubuntu-latest
 
-    steps:
-      - name: Abort if not a tag
-        run: git show-ref --verify refs/tags/$GITHUB_REF
-        
+    steps:        
       - name: Check out code into the Go module directory
         uses: actions/checkout@v1
         with:
