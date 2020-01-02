@@ -24,7 +24,7 @@ jobs:
         run: go install github.com/alexandre-normand/landler
 
       - name: Prepare dependencies for gcloud deploy
-        run: cd ${GITHUB_WORKSPACE}/cloudfunctions && go mod init github.com/${GITHUB_REPOSITORY}/cloudfunctions &&  go build . && go mod vendor
+        run: cd ${GITHUB_WORKSPACE}/cloudfunctions && go mod init github.com/${GITHUB_REPOSITORY}/cloudfunctions && go mod edit -replace github.com/alexandre-normand/rogerchallenger=../ && go build . && go mod vendor
 
       - uses: GoogleCloudPlatform/github-actions/setup-gcloud@master
         with:
