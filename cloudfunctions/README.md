@@ -2,7 +2,7 @@
 
 ## Requirements
 
-[landler]() must be installed via `go install github.com/alexandre-normand/landler`
+[landler](https://github.com/alexandre-normand/landler) must be installed via `go install github.com/alexandre-normand/landler`
 
 ## Deploy
 

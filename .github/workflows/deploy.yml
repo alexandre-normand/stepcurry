@@ -13,7 +13,7 @@ jobs:
       - name: Check out code into the Go module directory
         uses: actions/checkout@v1
         with:
-          ref: $GITHUB_REF
+          ref: ${{ github.ref }}
 
       - name: Install landler
         run: go install github.com/alexandre-normand/landler
