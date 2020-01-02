@@ -27,83 +27,102 @@ func TestNewRogerChallenger(t *testing.T) {
 	channelInfoFinder := &mocks.ChannelInfoFinder{}
 	defer channelInfoFinder.AssertExpectations(t)
 
+	teamRouter := &SingleTenantRouter{}
+
 	tests := map[string]struct {
 		baseURL            string
+		appID              string
 		fitbitClientID     string
 		fitbitClientSecret string
+		slackClientID      string
+		slackClientSecret  string
 		opts               []Option
 		expectedInstance   *RogerChallenger
 		expectedErr        error
 	}{
 		"WithAllDependencies": {
 			baseURL:            "https://rogerchallenger.com",
+			appID:              "roger",
 			fitbitClientID:     "clientID1",
 			fitbitClientSecret: "clientSecret1",
-			opts:               []Option{OptionMessenger(messenger), OptionStorer(storer), OptionVerifier(verifier), OptionTaskScheduler(taskScheduler), OptionChannelInfoFinder(channelInfoFinder), OptionUserInfoFinder(userInfoFinder)},
-			expectedInstance:   &RogerChallenger{baseURL: "https://rogerchallenger.com", fitbitAPIBaseURL: defaultFitbitAPIBaseURL, fitbitAuthBaseURL: defaultFitbitAuthBaseURL, fitbitClientID: "clientID1", fitbitClientSecret: "clientSecret1"},
+			slackClientID:      "slackID1",
+			slackClientSecret:  "slackSecret1",
+			opts:               []Option{OptionTeamRouter(teamRouter), OptionStorer(storer), OptionVerifier(verifier), OptionTaskScheduler(taskScheduler)},
+			expectedInstance:   &RogerChallenger{baseURL: "https://rogerchallenger.com", slackAppID: "roger", fitbitAPIBaseURL: defaultFitbitAPIBaseURL, fitbitAuthBaseURL: defaultFitbitAuthBaseURL, slackBaseURL: defaultSlackBaseURL, fitbitClientID: "clientID1", fitbitClientSecret: "clientSecret1", slackClientID: "slackID1", slackClientSecret: "slackSecret1"},
 			expectedErr:        nil},
 		"WithFitbitURLsOverride": {
 			baseURL:            "https://rogerchallenger.com",
+			appID:              "roger",
 			fitbitClientID:     "clientID1",
 			fitbitClientSecret: "clientSecret1",
-			opts:               []Option{OptionFitbitURLs("https://beta.fitbit.com/auth", "https://beta.api.fitbit.com"), OptionMessenger(messenger), OptionStorer(storer), OptionVerifier(verifier), OptionTaskScheduler(taskScheduler), OptionChannelInfoFinder(channelInfoFinder), OptionUserInfoFinder(userInfoFinder)},
-			expectedInstance:   &RogerChallenger{baseURL: "https://rogerchallenger.com", fitbitAPIBaseURL: "https://beta.api.fitbit.com", fitbitAuthBaseURL: "https://beta.fitbit.com/auth", fitbitClientID: "clientID1", fitbitClientSecret: "clientSecret1"},
+			slackClientID:      "slackID1",
+			slackClientSecret:  "slackSecret1",
+			opts:               []Option{OptionFitbitURLs("https://beta.fitbit.com/auth", "https://beta.api.fitbit.com"), OptionTeamRouter(teamRouter), OptionStorer(storer), OptionVerifier(verifier), OptionTaskScheduler(taskScheduler)},
+			expectedInstance:   &RogerChallenger{baseURL: "https://rogerchallenger.com", slackAppID: "roger", fitbitAPIBaseURL: "https://beta.api.fitbit.com", fitbitAuthBaseURL: "https://beta.fitbit.com/auth", slackBaseURL: defaultSlackBaseURL, fitbitClientID: "clientID1", fitbitClientSecret: "clientSecret1", slackClientID: "slackID1", slackClientSecret: "slackSecret1"},
+			expectedErr:        nil},
+		"WithSlackURLOverride": {
+			baseURL:            "https://rogerchallenger.com",
+			appID:              "slackRoger",
+			fitbitClientID:     "clientID1",
+			fitbitClientSecret: "clientSecret1",
+			slackClientID:      "slackID1",
+			slackClientSecret:  "slackSecret1",
+			opts:               []Option{OptionSlackBaseURL("https://slack.io"), OptionTeamRouter(teamRouter), OptionStorer(storer), OptionVerifier(verifier), OptionTaskScheduler(taskScheduler)},
+			expectedInstance:   &RogerChallenger{baseURL: "https://rogerchallenger.com", slackAppID: "slackRoger", fitbitAPIBaseURL: defaultFitbitAPIBaseURL, fitbitAuthBaseURL: defaultFitbitAuthBaseURL, slackBaseURL: "https://slack.io", fitbitClientID: "clientID1", fitbitClientSecret: "clientSecret1", slackClientID: "slackID1", slackClientSecret: "slackSecret1"},
 			expectedErr:        nil},
 		"WithoutDatastorer": {
 			baseURL:            "",
 			fitbitClientID:     "",
 			fitbitClientSecret: "",
-			opts:               []Option{OptionMessenger(messenger), OptionVerifier(verifier), OptionTaskScheduler(taskScheduler), OptionChannelInfoFinder(channelInfoFinder), OptionUserInfoFinder(userInfoFinder)},
+			slackClientID:      "",
+			slackClientSecret:  "",
+			opts:               []Option{OptionTeamRouter(teamRouter), OptionVerifier(verifier), OptionTaskScheduler(taskScheduler)},
 			expectedInstance:   nil,
 			expectedErr:        fmt.Errorf("storer is nil after applying all Options. Did you forget to set one?")},
 		"WithoutVerifier": {
 			baseURL:            "",
 			fitbitClientID:     "",
 			fitbitClientSecret: "",
-			opts:               []Option{OptionMessenger(messenger), OptionStorer(storer), OptionTaskScheduler(taskScheduler), OptionChannelInfoFinder(channelInfoFinder), OptionUserInfoFinder(userInfoFinder)},
+			slackClientID:      "",
+			slackClientSecret:  "",
+			opts:               []Option{OptionTeamRouter(teamRouter), OptionStorer(storer), OptionTaskScheduler(taskScheduler)},
 			expectedInstance:   nil,
 			expectedErr:        fmt.Errorf("verifier is nil after applying all Options. Did you forget to set one?")},
 		"WithoutTaskScheduler": {
 			baseURL:            "",
 			fitbitClientID:     "",
 			fitbitClientSecret: "",
-			opts:               []Option{OptionMessenger(messenger), OptionStorer(storer), OptionVerifier(verifier), OptionChannelInfoFinder(channelInfoFinder), OptionUserInfoFinder(userInfoFinder)},
+			slackClientID:      "",
+			slackClientSecret:  "",
+			opts:               []Option{OptionTeamRouter(teamRouter), OptionStorer(storer), OptionVerifier(verifier)},
 			expectedInstance:   nil,
 			expectedErr:        fmt.Errorf("taskScheduler is nil after applying all Options. Did you forget to set one?")},
-		"WithoutChannelInfoFinder": {
+		"WithoutTeamRouter": {
 			baseURL:            "",
 			fitbitClientID:     "",
 			fitbitClientSecret: "",
-			opts:               []Option{OptionMessenger(messenger), OptionStorer(storer), OptionVerifier(verifier), OptionTaskScheduler(taskScheduler), OptionUserInfoFinder(userInfoFinder)},
+			slackClientID:      "",
+			slackClientSecret:  "",
+			opts:               []Option{OptionStorer(storer), OptionVerifier(verifier), OptionTaskScheduler(taskScheduler)},
 			expectedInstance:   nil,
-			expectedErr:        fmt.Errorf("channelInfoFinder is nil after applying all Options. Did you forget to set one?")},
-		"WithoutUserInfoFinder": {
-			baseURL:            "",
-			fitbitClientID:     "",
-			fitbitClientSecret: "",
-			opts:               []Option{OptionMessenger(messenger), OptionStorer(storer), OptionVerifier(verifier), OptionTaskScheduler(taskScheduler), OptionChannelInfoFinder(channelInfoFinder)},
-			expectedInstance:   nil,
-			expectedErr:        fmt.Errorf("userInfoFinder is nil after applying all Options. Did you forget to set one?")},
-		"WithoutMessenger": {
-			baseURL:            "",
-			fitbitClientID:     "",
-			fitbitClientSecret: "",
-			opts:               []Option{OptionStorer(storer), OptionVerifier(verifier), OptionTaskScheduler(taskScheduler), OptionChannelInfoFinder(channelInfoFinder), OptionUserInfoFinder(userInfoFinder)},
-			expectedInstance:   nil,
-			expectedErr:        fmt.Errorf("messenger is nil after applying all Options. Did you forget to set one?")},
+			expectedErr:        fmt.Errorf("teamRouter is nil after applying all Options. Did you forget to set one?")},
 	}
 
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
-			testRc, err := New(tc.baseURL, tc.fitbitClientID, tc.fitbitClientSecret, tc.opts...)
+			testRc, err := New(tc.baseURL, tc.appID, tc.fitbitClientID, tc.fitbitClientSecret, tc.slackClientID, tc.slackClientSecret, tc.opts...)
 
 			if tc.expectedErr != nil {
 				require.EqualError(t, err, tc.expectedErr.Error())
 				assert.Nil(t, testRc)
 			} else {
 				assert.Equal(t, tc.expectedInstance.baseURL, testRc.baseURL)
+				assert.Equal(t, tc.expectedInstance.slackAppID, testRc.slackAppID)
 				assert.Equal(t, tc.expectedInstance.fitbitClientID, testRc.fitbitClientID)
 				assert.Equal(t, tc.expectedInstance.fitbitClientSecret, testRc.fitbitClientSecret)
+				assert.Equal(t, tc.expectedInstance.slackClientID, testRc.slackClientID)
+				assert.Equal(t, tc.expectedInstance.slackClientSecret, testRc.slackClientSecret)
+				assert.Equal(t, tc.expectedInstance.slackBaseURL, testRc.slackBaseURL)
 				assert.Equal(t, tc.expectedInstance.fitbitAuthBaseURL, testRc.fitbitAuthBaseURL)
 				assert.Equal(t, tc.expectedInstance.fitbitAPIBaseURL, testRc.fitbitAPIBaseURL)
 			}

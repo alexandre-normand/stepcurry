@@ -1,19 +1,11 @@
-package rogerchallenger
+package cloudfunctions
 
 import (
 	"fmt"
+	"github.com/alexandre-normand/rogerchallenger"
+	"github.com/spf13/cast"
 	"net/http"
 	"os"
-)
-
-// Secret names
-const (
-	slackTokenKey         = "slackToken"
-	slackClientIDKey      = "slackClientID"
-	slackClientSecretKey  = "slackClientSecret"
-	signingSecretKey      = "slackSigningSecret"
-	fitbitClientIDKey     = "fitbitClientID"
-	fitbitClientSecretKey = "fitbitClientSecret"
 )
 
 // GCP Environment Variables
@@ -28,34 +20,34 @@ const (
 	challengeUpdatesQueue = "challenge-updates"
 )
 
-var rc *RogerChallenger
+var rc *rogerchallenger.RogerChallenger
 
 func init() {
 	projectID := os.Getenv(projectIDEnv)
 	region := os.Getenv(regionEnv)
 
-	slackClientID, slackClientSecret, slackSigningSecret, fitbitClientID, fitbitClientSecret, err := loadSecrets(projectID)
+	appID, slackClientID, slackClientSecret, slackSigningSecret, fitbitClientID, fitbitClientSecret, err := loadSecrets(projectID)
 	if err != nil {
 		panic(fmt.Sprintf("Failed to load Roger Challenger secrets: %s", err.Error()))
 	}
 
-	storer, err := NewDatastorer(projectID)
+	storer, err := rogerchallenger.NewDatastorer(projectID)
 	if err != nil {
 		panic(fmt.Sprintf("Failed to initialize datastore: %s", err.Error()))
 	}
 
-	taskScheduler, err := NewTaskScheduler(projectID, region, challengeUpdatesQueue)
+	taskScheduler, err := rogerchallenger.NewTaskScheduler(projectID, region, challengeUpdatesQueue)
 	if err != nil {
 		panic(fmt.Sprintf("Failed to initialize Cloud Tasks Client: %s", err.Error()))
 	}
 
-	tokenManager := &MultiTenantTokenManager{}
-	router, err := NewMultiTenantRouter(projectID, storer, tokenManager, tokenManager)
+	tokenManager := NewMultiTenantTokenManager(projectID)
+	router, err := rogerchallenger.NewMultiTenantRouter(projectID, storer, tokenManager, tokenManager, cast.ToBool(os.Getenv(debugEnv)))
 	if err != nil {
 		panic(fmt.Sprintf("Failed to initialize Roger Challenger: %s", err.Error()))
 	}
 
-	roger, err := New(inferBaseURL(projectID, region), fitbitClientID, fitbitClientSecret, slackClientID, slackClientSecret, OptionSlackVerifier(slackSigningSecret), OptionStorer(storer), OptionTeamRouter(router), OptionTaskScheduler(taskScheduler))
+	roger, err := rogerchallenger.New(inferBaseURL(projectID, region), appID, fitbitClientID, fitbitClientSecret, slackClientID, slackClientSecret, rogerchallenger.OptionSlackVerifier(slackSigningSecret), rogerchallenger.OptionStorer(storer), rogerchallenger.OptionTeamRouter(router), rogerchallenger.OptionTaskScheduler(taskScheduler))
 	if err != nil {
 		panic(fmt.Sprintf("Failed to initialize Roger Challenger: %s", err.Error()))
 	}

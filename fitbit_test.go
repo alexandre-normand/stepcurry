@@ -16,7 +16,7 @@ import (
 	"testing"
 )
 
-func TestHandleFitbitAuthorizedCallbackUrlParsing(t *testing.T) {
+func TestHandleFitbitAuthCallbackUrlParsing(t *testing.T) {
 	tests := map[string]struct {
 		callbackURL    string
 		expectedResult int
@@ -62,14 +62,17 @@ func TestHandleFitbitAuthorizedCallbackUrlParsing(t *testing.T) {
 	channelInfoFinder := &mocks.ChannelInfoFinder{}
 	defer channelInfoFinder.AssertExpectations(t)
 
-	rc, err := New("https://localhost", "clientID", "clientSecret", OptionVerifier(verifier), OptionStorer(storer), OptionMessenger(messenger), OptionTaskScheduler(taskScheduler), OptionUserInfoFinder(userInfoFinder), OptionChannelInfoFinder(channelInfoFinder))
+	teamRouter, err := NewSingleTenantRouter(userInfoFinder, nil, messenger, channelInfoFinder)
+	require.NoError(t, err)
+
+	rc, err := New("https://localhost", "roger", "fitbitClientID", "fitbitClientSecret", "slackClientID", "slackClientSecret", OptionTeamRouter(teamRouter), OptionVerifier(verifier), OptionStorer(storer), OptionTaskScheduler(taskScheduler))
 	require.NoError(t, err)
 
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
 			r := httptest.NewRequest(http.MethodGet, tc.callbackURL, strings.NewReader(""))
 			w := httptest.NewRecorder()
-			rc.HandleFitbitAuthorized(w, r)
+			rc.HandleFitbitAuth(w, r)
 
 			resp := w.Result()
 			rbody, _ := ioutil.ReadAll(resp.Body)
@@ -80,7 +83,7 @@ func TestHandleFitbitAuthorizedCallbackUrlParsing(t *testing.T) {
 	}
 }
 
-func TestHandleFitbitAuthorizedCallbackWithErrorLoadingCsrfToken(t *testing.T) {
+func TestHandleFitbitAuthCallbackWithErrorLoadingCsrfToken(t *testing.T) {
 	stateValue := authIDStateToQueryParam(AuthIdentificationState{SlackUser: "UCODE", SlackChannel: "CGEN", SlackTeam: "TSOMETHING", ResponseURL: "ignored", CsrfToken: CsrfToken{Csrf: []byte("csrf")}})
 	callbackURL := fmt.Sprintf("/%s?code=46f595a20e4cd85ce6abf6487eacdaaaf0ecf1c4&state=%s", oauthCallbackPath, stateValue)
 	r := httptest.NewRequest(http.MethodGet, callbackURL, strings.NewReader(""))
@@ -108,9 +111,12 @@ func TestHandleFitbitAuthorizedCallbackWithErrorLoadingCsrfToken(t *testing.T) {
 	channelInfoFinder := &mocks.ChannelInfoFinder{}
 	defer channelInfoFinder.AssertExpectations(t)
 
-	rc, err := New("https://localhost", "clientID", "clientSecret", OptionVerifier(verifier), OptionStorer(storer), OptionMessenger(messenger), OptionTaskScheduler(taskScheduler), OptionUserInfoFinder(userInfoFinder), OptionChannelInfoFinder(channelInfoFinder))
+	teamRouter, err := NewSingleTenantRouter(userInfoFinder, nil, messenger, channelInfoFinder)
 	require.NoError(t, err)
-	rc.HandleFitbitAuthorized(w, r)
+
+	rc, err := New("https://localhost", "roger", "fitbitClientID", "fitbitClientSecret", "slackClientID", "slackClientSecret", OptionTeamRouter(teamRouter), OptionVerifier(verifier), OptionStorer(storer), OptionTaskScheduler(taskScheduler))
+	require.NoError(t, err)
+	rc.HandleFitbitAuth(w, r)
 
 	resp := w.Result()
 	rbody, _ := ioutil.ReadAll(resp.Body)
@@ -119,7 +125,7 @@ func TestHandleFitbitAuthorizedCallbackWithErrorLoadingCsrfToken(t *testing.T) {
 	assert.Equal(t, "datastore: invalid entity type\n", string(rbody))
 }
 
-func TestHandleFitbitAuthorizedCallbackWithMissingCsrfToken(t *testing.T) {
+func TestHandleFitbitAuthCallbackWithMissingCsrfToken(t *testing.T) {
 	stateValue := authIDStateToQueryParam(AuthIdentificationState{SlackUser: "UCODE", SlackChannel: "CGEN", SlackTeam: "TSOMETHING", ResponseURL: "ignored", CsrfToken: CsrfToken{Csrf: []byte("csrf")}})
 	callbackURL := fmt.Sprintf("/%s?code=46f595a20e4cd85ce6abf6487eacdaaaf0ecf1c4&state=%s", oauthCallbackPath, stateValue)
 	r := httptest.NewRequest(http.MethodGet, callbackURL, strings.NewReader(""))
@@ -147,9 +153,12 @@ func TestHandleFitbitAuthorizedCallbackWithMissingCsrfToken(t *testing.T) {
 	channelInfoFinder := &mocks.ChannelInfoFinder{}
 	defer channelInfoFinder.AssertExpectations(t)
 
-	rc, err := New("https://localhost", "clientID", "clientSecret", OptionVerifier(verifier), OptionStorer(storer), OptionMessenger(messenger), OptionTaskScheduler(taskScheduler), OptionUserInfoFinder(userInfoFinder), OptionChannelInfoFinder(channelInfoFinder))
+	teamRouter, err := NewSingleTenantRouter(userInfoFinder, nil, messenger, channelInfoFinder)
 	require.NoError(t, err)
-	rc.HandleFitbitAuthorized(w, r)
+
+	rc, err := New("https://localhost", "roger", "fitbitClientID", "fitbitClientSecret", "slackClientID", "slackClientSecret", OptionTeamRouter(teamRouter), OptionVerifier(verifier), OptionStorer(storer), OptionTaskScheduler(taskScheduler))
+	require.NoError(t, err)
+	rc.HandleFitbitAuth(w, r)
 
 	resp := w.Result()
 	rbody, _ := ioutil.ReadAll(resp.Body)
@@ -158,7 +167,7 @@ func TestHandleFitbitAuthorizedCallbackWithMissingCsrfToken(t *testing.T) {
 	assert.Equal(t, "CSRF token not found\n", string(rbody))
 }
 
-func TestHandleFitbitAuthorizedCallbackWithUnexpectedCsrfToken(t *testing.T) {
+func TestHandleFitbitAuthCallbackWithUnexpectedCsrfToken(t *testing.T) {
 	stateValue := authIDStateToQueryParam(AuthIdentificationState{SlackUser: "UCODE", SlackChannel: "CGEN", SlackTeam: "TSOMETHING", ResponseURL: "ignored", CsrfToken: CsrfToken{Csrf: []byte("csrf")}})
 	callbackURL := fmt.Sprintf("/%s?code=46f595a20e4cd85ce6abf6487eacdaaaf0ecf1c4&state=%s", oauthCallbackPath, stateValue)
 	r := httptest.NewRequest(http.MethodGet, callbackURL, strings.NewReader(""))
@@ -188,9 +197,12 @@ func TestHandleFitbitAuthorizedCallbackWithUnexpectedCsrfToken(t *testing.T) {
 	channelInfoFinder := &mocks.ChannelInfoFinder{}
 	defer channelInfoFinder.AssertExpectations(t)
 
-	rc, err := New("https://localhost", "clientID", "clientSecret", OptionVerifier(verifier), OptionStorer(storer), OptionMessenger(messenger), OptionTaskScheduler(taskScheduler), OptionUserInfoFinder(userInfoFinder), OptionChannelInfoFinder(channelInfoFinder))
+	teamRouter, err := NewSingleTenantRouter(userInfoFinder, nil, messenger, channelInfoFinder)
 	require.NoError(t, err)
-	rc.HandleFitbitAuthorized(w, r)
+
+	rc, err := New("https://localhost", "roger", "fitbitClientID", "fitbitClientSecret", "slackClientID", "slackClientSecret", OptionTeamRouter(teamRouter), OptionVerifier(verifier), OptionStorer(storer), OptionTaskScheduler(taskScheduler))
+	require.NoError(t, err)
+	rc.HandleFitbitAuth(w, r)
 
 	resp := w.Result()
 	rbody, _ := ioutil.ReadAll(resp.Body)
@@ -199,7 +211,7 @@ func TestHandleFitbitAuthorizedCallbackWithUnexpectedCsrfToken(t *testing.T) {
 	assert.Equal(t, "Invalid CSRF Token\n", string(rbody))
 }
 
-func TestHandleFitbitAuthorizedCallbackWithErrorDeletingToken(t *testing.T) {
+func TestHandleFitbitAuthCallbackWithErrorDeletingToken(t *testing.T) {
 	stateValue := authIDStateToQueryParam(AuthIdentificationState{SlackUser: "UCODE", SlackChannel: "CGEN", SlackTeam: "TSOMETHING", ResponseURL: "ignored", CsrfToken: CsrfToken{Csrf: []byte("csrf")}})
 	callbackURL := fmt.Sprintf("/%s?code=46f595a20e4cd85ce6abf6487eacdaaaf0ecf1c4&state=%s", oauthCallbackPath, stateValue)
 	r := httptest.NewRequest(http.MethodGet, callbackURL, strings.NewReader(""))
@@ -233,9 +245,12 @@ func TestHandleFitbitAuthorizedCallbackWithErrorDeletingToken(t *testing.T) {
 	channelInfoFinder := &mocks.ChannelInfoFinder{}
 	defer channelInfoFinder.AssertExpectations(t)
 
-	rc, err := New("https://localhost", "clientID", "clientSecret", OptionVerifier(verifier), OptionStorer(storer), OptionMessenger(messenger), OptionTaskScheduler(taskScheduler), OptionUserInfoFinder(userInfoFinder), OptionChannelInfoFinder(channelInfoFinder))
+	teamRouter, err := NewSingleTenantRouter(userInfoFinder, nil, messenger, channelInfoFinder)
 	require.NoError(t, err)
-	rc.HandleFitbitAuthorized(w, r)
+
+	rc, err := New("https://localhost", "roger", "fitbitClientID", "fitbitClientSecret", "slackClientID", "slackClientSecret", OptionTeamRouter(teamRouter), OptionVerifier(verifier), OptionStorer(storer), OptionTaskScheduler(taskScheduler))
+	require.NoError(t, err)
+	rc.HandleFitbitAuth(w, r)
 
 	resp := w.Result()
 	rbody, _ := ioutil.ReadAll(resp.Body)
@@ -244,7 +259,7 @@ func TestHandleFitbitAuthorizedCallbackWithErrorDeletingToken(t *testing.T) {
 	assert.Equal(t, "backend error\n", string(rbody))
 }
 
-func TestHandleFitbitAuthorizedCallbackWithErrorExchangingCodeForToken(t *testing.T) {
+func TestHandleFitbitAuthCallbackWithErrorExchangingCodeForToken(t *testing.T) {
 	mux := http.NewServeMux()
 	server := httptest.NewServer(mux)
 	defer server.Close()
@@ -286,9 +301,12 @@ func TestHandleFitbitAuthorizedCallbackWithErrorExchangingCodeForToken(t *testin
 	channelInfoFinder := &mocks.ChannelInfoFinder{}
 	defer channelInfoFinder.AssertExpectations(t)
 
-	rc, err := New("https://localhost", "clientID", "clientSecret", OptionFitbitURLs(server.URL, server.URL), OptionVerifier(verifier), OptionStorer(storer), OptionMessenger(messenger), OptionTaskScheduler(taskScheduler), OptionUserInfoFinder(userInfoFinder), OptionChannelInfoFinder(channelInfoFinder))
+	teamRouter, err := NewSingleTenantRouter(userInfoFinder, nil, messenger, channelInfoFinder)
 	require.NoError(t, err)
-	rc.HandleFitbitAuthorized(w, r)
+
+	rc, err := New("https://localhost", "roger", "fitbitClientID", "fitbitClientSecret", "slackClientID", "slackClientSecret", OptionTeamRouter(teamRouter), OptionFitbitURLs(server.URL, server.URL), OptionVerifier(verifier), OptionStorer(storer), OptionTaskScheduler(taskScheduler))
+	require.NoError(t, err)
+	rc.HandleFitbitAuth(w, r)
 
 	resp := w.Result()
 	rbody, _ := ioutil.ReadAll(resp.Body)
@@ -297,7 +315,7 @@ func TestHandleFitbitAuthorizedCallbackWithErrorExchangingCodeForToken(t *testin
 	assert.Equal(t, "error getting access token [503 Service Unavailable]: \n", string(rbody))
 }
 
-func TestHandleFitbitAuthorizedCallbackWithInvalidTokenResponse(t *testing.T) {
+func TestHandleFitbitAuthCallbackWithInvalidTokenResponse(t *testing.T) {
 	mux := http.NewServeMux()
 	server := httptest.NewServer(mux)
 	defer server.Close()
@@ -339,9 +357,12 @@ func TestHandleFitbitAuthorizedCallbackWithInvalidTokenResponse(t *testing.T) {
 	channelInfoFinder := &mocks.ChannelInfoFinder{}
 	defer channelInfoFinder.AssertExpectations(t)
 
-	rc, err := New("https://localhost", "clientID", "clientSecret", OptionFitbitURLs(server.URL, server.URL), OptionVerifier(verifier), OptionStorer(storer), OptionMessenger(messenger), OptionTaskScheduler(taskScheduler), OptionUserInfoFinder(userInfoFinder), OptionChannelInfoFinder(channelInfoFinder))
+	teamRouter, err := NewSingleTenantRouter(userInfoFinder, nil, messenger, channelInfoFinder)
 	require.NoError(t, err)
-	rc.HandleFitbitAuthorized(w, r)
+
+	rc, err := New("https://localhost", "roger", "fitbitClientID", "fitbitClientSecret", "slackClientID", "slackClientSecret", OptionTeamRouter(teamRouter), OptionFitbitURLs(server.URL, server.URL), OptionVerifier(verifier), OptionStorer(storer), OptionTaskScheduler(taskScheduler))
+	require.NoError(t, err)
+	rc.HandleFitbitAuth(w, r)
 
 	resp := w.Result()
 	rbody, _ := ioutil.ReadAll(resp.Body)
@@ -350,7 +371,7 @@ func TestHandleFitbitAuthorizedCallbackWithInvalidTokenResponse(t *testing.T) {
 	assert.Equal(t, "error decoding api access response: unexpected end of JSON input\n", string(rbody))
 }
 
-func TestHandleFitbitAuthorizedCallbackWithErrorPersistingClientAccess(t *testing.T) {
+func TestHandleFitbitAuthCallbackWithErrorPersistingClientAccess(t *testing.T) {
 	mux := http.NewServeMux()
 	server := httptest.NewServer(mux)
 	defer server.Close()
@@ -382,8 +403,8 @@ func TestHandleFitbitAuthorizedCallbackWithErrorPersistingClientAccess(t *testin
 		return k.Namespace == "TSOMETHING" && k.Name == "UCODE" && k.Parent == nil && k.Kind == "CsrfToken"
 	}), mock.Anything).Return(nil)
 	storer.On("Put", mock.Anything, mock.MatchedBy(func(k *datastore.Key) bool {
-		return k.Namespace == "TSOMETHING" && k.Name == "UCODE" && k.Parent == nil && k.Kind == "ClientAccess"
-	}), &ClientAccess{SlackUser: "UCODE", SlackTeam: "TSOMETHING", FitbitApiAccess: FitbitApiAccess{Token: "token", FitbitUser: "1020", RefreshToken: "refresh"}}).Return(nil, fmt.Errorf("backend error"))
+		return k.Namespace == "" && k.Name == "1020" && k.Parent == nil && k.Kind == "FitbitApiAccess"
+	}), &FitbitApiAccess{Token: "token", FitbitUser: "1020", RefreshToken: "refresh"}).Return(nil, fmt.Errorf("backend error"))
 	defer storer.AssertExpectations(t)
 
 	messenger := &mocks.Messenger{}
@@ -398,9 +419,12 @@ func TestHandleFitbitAuthorizedCallbackWithErrorPersistingClientAccess(t *testin
 	channelInfoFinder := &mocks.ChannelInfoFinder{}
 	defer channelInfoFinder.AssertExpectations(t)
 
-	rc, err := New("https://localhost", "clientID", "clientSecret", OptionFitbitURLs(server.URL, server.URL), OptionVerifier(verifier), OptionStorer(storer), OptionMessenger(messenger), OptionTaskScheduler(taskScheduler), OptionUserInfoFinder(userInfoFinder), OptionChannelInfoFinder(channelInfoFinder))
+	teamRouter, err := NewSingleTenantRouter(userInfoFinder, nil, messenger, channelInfoFinder)
 	require.NoError(t, err)
-	rc.HandleFitbitAuthorized(w, r)
+
+	rc, err := New("https://localhost", "roger", "fitbitClientID", "fitbitClientSecret", "slackClientID", "slackClientSecret", OptionTeamRouter(teamRouter), OptionFitbitURLs(server.URL, server.URL), OptionVerifier(verifier), OptionStorer(storer), OptionTaskScheduler(taskScheduler))
+	require.NoError(t, err)
+	rc.HandleFitbitAuth(w, r)
 
 	resp := w.Result()
 	rbody, _ := ioutil.ReadAll(resp.Body)
@@ -409,7 +433,7 @@ func TestHandleFitbitAuthorizedCallbackWithErrorPersistingClientAccess(t *testin
 	assert.Equal(t, "backend error\n", string(rbody))
 }
 
-func TestHandleFitbitAuthorizedCallbackWithErrorSendingResultMessage(t *testing.T) {
+func TestHandleFitbitAuthCallbackWithErrorSendingResultMessage(t *testing.T) {
 	mux := http.NewServeMux()
 	server := httptest.NewServer(mux)
 	defer server.Close()
@@ -446,8 +470,11 @@ func TestHandleFitbitAuthorizedCallbackWithErrorSendingResultMessage(t *testing.
 		return k.Namespace == "TSOMETHING" && k.Name == "UCODE" && k.Parent == nil && k.Kind == "CsrfToken"
 	}), mock.Anything).Return(nil)
 	storer.On("Put", mock.Anything, mock.MatchedBy(func(k *datastore.Key) bool {
+		return k.Namespace == "" && k.Name == "1020" && k.Parent == nil && k.Kind == "FitbitApiAccess"
+	}), &FitbitApiAccess{Token: "token", FitbitUser: "1020", RefreshToken: "refresh"}).Return(nil, nil)
+	storer.On("Put", mock.Anything, mock.MatchedBy(func(k *datastore.Key) bool {
 		return k.Namespace == "TSOMETHING" && k.Name == "UCODE" && k.Parent == nil && k.Kind == "ClientAccess"
-	}), &ClientAccess{SlackUser: "UCODE", SlackTeam: "TSOMETHING", FitbitApiAccess: FitbitApiAccess{Token: "token", FitbitUser: "1020", RefreshToken: "refresh"}}).Return(nil, nil)
+	}), &ClientAccess{SlackUser: "UCODE", FitbitUser: "1020", SlackTeam: "TSOMETHING"}).Return(nil, nil)
 	defer storer.AssertExpectations(t)
 
 	messenger := &mocks.Messenger{}
@@ -462,9 +489,12 @@ func TestHandleFitbitAuthorizedCallbackWithErrorSendingResultMessage(t *testing.
 	channelInfoFinder := &mocks.ChannelInfoFinder{}
 	defer channelInfoFinder.AssertExpectations(t)
 
-	rc, err := New("https://localhost", "clientID", "clientSecret", OptionFitbitURLs(server.URL, server.URL), OptionVerifier(verifier), OptionStorer(storer), OptionMessenger(messenger), OptionTaskScheduler(taskScheduler), OptionUserInfoFinder(userInfoFinder), OptionChannelInfoFinder(channelInfoFinder))
+	teamRouter, err := NewSingleTenantRouter(userInfoFinder, nil, messenger, channelInfoFinder)
 	require.NoError(t, err)
-	rc.HandleFitbitAuthorized(w, r)
+
+	rc, err := New("https://localhost", "roger", "fitbitClientID", "fitbitClientSecret", "slackClientID", "slackClientSecret", OptionTeamRouter(teamRouter), OptionFitbitURLs(server.URL, server.URL), OptionVerifier(verifier), OptionStorer(storer), OptionTaskScheduler(taskScheduler))
+	require.NoError(t, err)
+	rc.HandleFitbitAuth(w, r)
 
 	resp := w.Result()
 	rbody, _ := ioutil.ReadAll(resp.Body)
@@ -473,7 +503,7 @@ func TestHandleFitbitAuthorizedCallbackWithErrorSendingResultMessage(t *testing.
 	assert.Equal(t, "timeout\n", string(rbody))
 }
 
-func TestHandleFitbitAuthorizedCallback(t *testing.T) {
+func TestHandleFitbitAuthCallback(t *testing.T) {
 	mux := http.NewServeMux()
 	server := httptest.NewServer(mux)
 	defer server.Close()
@@ -509,8 +539,12 @@ func TestHandleFitbitAuthorizedCallback(t *testing.T) {
 		return k.Namespace == "TSOMETHING" && k.Name == "UCODE" && k.Parent == nil && k.Kind == "CsrfToken"
 	}), mock.Anything).Return(nil)
 	storer.On("Put", mock.Anything, mock.MatchedBy(func(k *datastore.Key) bool {
+		return k.Namespace == "" && k.Name == "1020" && k.Parent == nil && k.Kind == "FitbitApiAccess"
+	}), &FitbitApiAccess{Token: "token", FitbitUser: "1020", RefreshToken: "refresh"}).Return(nil, nil)
+	storer.On("Put", mock.Anything, mock.MatchedBy(func(k *datastore.Key) bool {
 		return k.Namespace == "TSOMETHING" && k.Name == "UCODE" && k.Parent == nil && k.Kind == "ClientAccess"
-	}), &ClientAccess{SlackUser: "UCODE", SlackTeam: "TSOMETHING", FitbitApiAccess: FitbitApiAccess{Token: "token", FitbitUser: "1020", RefreshToken: "refresh"}}).Return(nil, nil)
+	}), &ClientAccess{SlackUser: "UCODE", SlackTeam: "TSOMETHING", FitbitUser: "1020"}).Return(nil, nil)
+
 	defer storer.AssertExpectations(t)
 
 	messenger := &mocks.Messenger{}
@@ -525,9 +559,12 @@ func TestHandleFitbitAuthorizedCallback(t *testing.T) {
 	channelInfoFinder := &mocks.ChannelInfoFinder{}
 	defer channelInfoFinder.AssertExpectations(t)
 
-	rc, err := New("https://localhost", "clientID", "clientSecret", OptionFitbitURLs(server.URL, server.URL), OptionVerifier(verifier), OptionStorer(storer), OptionMessenger(messenger), OptionTaskScheduler(taskScheduler), OptionUserInfoFinder(userInfoFinder), OptionChannelInfoFinder(channelInfoFinder))
+	teamRouter, err := NewSingleTenantRouter(userInfoFinder, nil, messenger, channelInfoFinder)
 	require.NoError(t, err)
-	rc.HandleFitbitAuthorized(w, r)
+
+	rc, err := New("https://localhost", "roger", "fitbitClientID", "fitbitClientSecret", "slackClientID", "slackClientSecret", OptionTeamRouter(teamRouter), OptionFitbitURLs(server.URL, server.URL), OptionVerifier(verifier), OptionStorer(storer), OptionTaskScheduler(taskScheduler))
+	require.NoError(t, err)
+	rc.HandleFitbitAuth(w, r)
 
 	resp := w.Result()
 	rbody, _ := ioutil.ReadAll(resp.Body)

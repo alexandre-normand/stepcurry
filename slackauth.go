@@ -10,7 +10,6 @@ import (
 	"log"
 	"net/http"
 	"net/url"
-	"os"
 	"strings"
 )
 
@@ -64,8 +63,7 @@ func (rc *RogerChallenger) HandleSlackAuth(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	tokenSaver := &MultiTenantTokenManager{}
-	err = tokenSaver.Save(os.Getenv(projectIDEnv), authResp.Team.ID, authResp.AccessToken)
+	err = rc.SaveToken(authResp.Team.ID, authResp.AccessToken)
 	if err != nil {
 		log.Printf("Error saving slack token: %s", err.Error())
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -82,7 +80,7 @@ func (rc *RogerChallenger) HandleSlackAuth(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	w.Write([]byte(fmt.Sprintf("<html><head><meta http-equiv=\"refresh\" content=\"0;URL=https://slack.com/app_redirect?app=%s&team=%s\"></head></html>", "ARQ0BSWJ3", authResp.Team.ID)))
+	w.Write([]byte(fmt.Sprintf("<html><head><meta http-equiv=\"refresh\" content=\"0;URL=https://slack.com/app_redirect?app=%s&team=%s\"></head></html>", rc.slackAppID, authResp.Team.ID)))
 }
 
 func (rc *RogerChallenger) exchangeSlackAuthCodeForToken(code string) (authResp SlackAuthResponse, err error) {

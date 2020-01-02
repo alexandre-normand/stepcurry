@@ -37,7 +37,10 @@ func TestStartFitbitOauthFlowInvalidSlackSignature(t *testing.T) {
 	channelInfoFinder := &mocks.ChannelInfoFinder{}
 	defer channelInfoFinder.AssertExpectations(t)
 
-	rc, err := New("https://localhost", "clientID", "clientSecret", OptionSlackVerifier("1e13414e22545115a2c62c3b8cd67dfe"), OptionStorer(storer), OptionMessenger(messenger), OptionTaskScheduler(taskScheduler), OptionUserInfoFinder(userInfoFinder), OptionChannelInfoFinder(channelInfoFinder))
+	teamRouter, err := NewSingleTenantRouter(userInfoFinder, nil, messenger, channelInfoFinder)
+	require.NoError(t, err)
+
+	rc, err := New("https://localhost", "roger", "fitbitClientID", "fitbitClientSecret", "slackClientID", "slackClientSecret", OptionTeamRouter(teamRouter), OptionSlackVerifier("1e13414e22545115a2c62c3b8cd67dfe"), OptionStorer(storer), OptionTaskScheduler(taskScheduler))
 	require.NoError(t, err)
 	rc.StartFitbitOauthFlow(w, r)
 
@@ -75,7 +78,10 @@ func TestStartFitbitOauthFlowInvalidSlackRequest(t *testing.T) {
 	channelInfoFinder := &mocks.ChannelInfoFinder{}
 	defer channelInfoFinder.AssertExpectations(t)
 
-	rc, err := New("https://localhost", "clientID", "clientSecret", OptionVerifier(verifier), OptionStorer(storer), OptionMessenger(messenger), OptionTaskScheduler(taskScheduler), OptionUserInfoFinder(userInfoFinder), OptionChannelInfoFinder(channelInfoFinder))
+	teamRouter, err := NewSingleTenantRouter(userInfoFinder, nil, messenger, channelInfoFinder)
+	require.NoError(t, err)
+
+	rc, err := New("https://localhost", "roger", "fitbitClientID", "fitbitClientSecret", "slackClientID", "slackClientSecret", OptionTeamRouter(teamRouter), OptionVerifier(verifier), OptionStorer(storer), OptionTaskScheduler(taskScheduler))
 	require.NoError(t, err)
 	rc.StartFitbitOauthFlow(w, r)
 
@@ -116,7 +122,10 @@ func TestStartFitbitOauthFlowErrorSavingCsrfToken(t *testing.T) {
 	channelInfoFinder := &mocks.ChannelInfoFinder{}
 	defer channelInfoFinder.AssertExpectations(t)
 
-	rc, err := New("https://localhost", "clientID", "clientSecret", OptionVerifier(verifier), OptionStorer(storer), OptionMessenger(messenger), OptionTaskScheduler(taskScheduler), OptionUserInfoFinder(userInfoFinder), OptionChannelInfoFinder(channelInfoFinder))
+	teamRouter, err := NewSingleTenantRouter(userInfoFinder, nil, messenger, channelInfoFinder)
+	require.NoError(t, err)
+
+	rc, err := New("https://localhost", "roger", "fitbitClientID", "fitbitClientSecret", "slackClientID", "slackClientSecret", OptionTeamRouter(teamRouter), OptionVerifier(verifier), OptionStorer(storer), OptionTaskScheduler(taskScheduler))
 	require.NoError(t, err)
 	rc.StartFitbitOauthFlow(w, r)
 
@@ -163,7 +172,10 @@ func TestStartFitbitOauthFlowErrorSendingSlackMessage(t *testing.T) {
 	channelInfoFinder := &mocks.ChannelInfoFinder{}
 	defer channelInfoFinder.AssertExpectations(t)
 
-	rc, err := New("https://localhost", "clientID", "clientSecret", OptionVerifier(verifier), OptionStorer(storer), OptionMessenger(messenger), OptionTaskScheduler(taskScheduler), OptionUserInfoFinder(userInfoFinder), OptionChannelInfoFinder(channelInfoFinder))
+	teamRouter, err := NewSingleTenantRouter(userInfoFinder, nil, messenger, channelInfoFinder)
+	require.NoError(t, err)
+
+	rc, err := New("https://localhost", "roger", "fitbitClientID", "fitbitClientSecret", "slackClientID", "slackClientSecret", OptionTeamRouter(teamRouter), OptionVerifier(verifier), OptionStorer(storer), OptionTaskScheduler(taskScheduler))
 	require.NoError(t, err)
 	rc.StartFitbitOauthFlow(w, r)
 
@@ -212,7 +224,10 @@ func TestStartFitbitOauthFlow(t *testing.T) {
 	channelInfoFinder := &mocks.ChannelInfoFinder{}
 	defer channelInfoFinder.AssertExpectations(t)
 
-	rc, err := New("https://localhost", "clientID", "clientSecret", OptionVerifier(verifier), OptionStorer(storer), OptionMessenger(messenger), OptionTaskScheduler(taskScheduler), OptionUserInfoFinder(userInfoFinder), OptionChannelInfoFinder(channelInfoFinder))
+	teamRouter, err := NewSingleTenantRouter(userInfoFinder, nil, messenger, channelInfoFinder)
+	require.NoError(t, err)
+
+	rc, err := New("https://localhost", "roger", "fitbitClientID", "fitbitClientSecret", "slackClientID", "slackClientSecret", OptionTeamRouter(teamRouter), OptionVerifier(verifier), OptionStorer(storer), OptionTaskScheduler(taskScheduler))
 	require.NoError(t, err)
 	rc.StartFitbitOauthFlow(w, r)
 
@@ -221,5 +236,5 @@ func TestStartFitbitOauthFlow(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 	assert.Equal(t, "", string(rbody))
-	assert.Contains(t, slackRequest, "https://www.fitbit.com/oauth2/authorize?response_type=code\\u0026client_id=clientID\\u0026redirect_uri=https%3A%2F%2Flocalhost%2FhandleFitbitAuth\\u0026scope=activity\\u0026prompt=login_consent\\u0026state=")
+	assert.Contains(t, slackRequest, "https://www.fitbit.com/oauth2/authorize?response_type=code\\u0026client_id=fitbitClientID\\u0026redirect_uri=https%3A%2F%2Flocalhost%2FHandleFitbitAuth\\u0026scope=activity\\u0026prompt=login_consent\\u0026state=")
 }

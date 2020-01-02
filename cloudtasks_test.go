@@ -35,7 +35,10 @@ func TestScheduleChallengeUpdate(t *testing.T) {
 	channelInfoFinder := &mocks.ChannelInfoFinder{}
 	defer channelInfoFinder.AssertExpectations(t)
 
-	rc, err := New("https://rogerchallenger.com", "clientID", "clientSecret", OptionMessenger(messenger), OptionStorer(storer), OptionVerifier(verifier), OptionChannelInfoFinder(channelInfoFinder), OptionUserInfoFinder(userInfoFinder), OptionTaskScheduler(taskScheduler))
+	teamRouter, err := NewSingleTenantRouter(userInfoFinder, nil, messenger, channelInfoFinder)
+	require.NoError(t, err)
+
+	rc, err := New("https://rogerchallenger.com", "roger", "fitbitClientID", "fitbitClientSecret", "slackClientID", "slackClientSecret", OptionTeamRouter(teamRouter), OptionStorer(storer), OptionVerifier(verifier), OptionTaskScheduler(taskScheduler))
 	require.NoError(t, err)
 
 	err = rc.scheduleChallengeUpdate(ChallengeID{TeamID: "TEAMID", ChannelID: "CID", Date: "2019-10-11"}, time.Date(2019, 10, 12, 8, 0, 0, 0, time.UTC))
@@ -65,8 +68,10 @@ func TestScheduleChallengeUpdateErrorOnCreateTask(t *testing.T) {
 
 	channelInfoFinder := &mocks.ChannelInfoFinder{}
 	defer channelInfoFinder.AssertExpectations(t)
+	teamRouter, err := NewSingleTenantRouter(userInfoFinder, nil, messenger, channelInfoFinder)
+	require.NoError(t, err)
 
-	rc, err := New("https://rogerchallenger.com", "clientID", "clientSecret", OptionMessenger(messenger), OptionStorer(storer), OptionVerifier(verifier), OptionChannelInfoFinder(channelInfoFinder), OptionUserInfoFinder(userInfoFinder), OptionTaskScheduler(taskScheduler))
+	rc, err := New("https://rogerchallenger.com", "roger", "fitbitClientID", "fitbitClientSecret", "slackClientID", "slackClientSecret", OptionTeamRouter(teamRouter), OptionStorer(storer), OptionVerifier(verifier), OptionTaskScheduler(taskScheduler))
 	require.NoError(t, err)
 
 	err = rc.scheduleChallengeUpdate(ChallengeID{TeamID: "TEAMID", ChannelID: "CID", Date: "2019-10-11"}, time.Date(2019, 10, 12, 8, 0, 0, 0, time.UTC))

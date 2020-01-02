@@ -5,9 +5,7 @@ import (
 	"fmt"
 	"github.com/nlopes/slack"
 	"github.com/pkg/errors"
-	"github.com/spf13/cast"
 	"net/http"
-	"os"
 )
 
 // RogerChallenger holds state and dependencies for a server instance
@@ -16,10 +14,12 @@ type RogerChallenger struct {
 	fitbitAuthBaseURL  string
 	fitbitAPIBaseURL   string
 	slackBaseURL       string
+	slackAppID         string
 	slackClientID      string
 	slackClientSecret  string
 	fitbitClientID     string
 	fitbitClientSecret string
+	debug              bool
 	storer             Datastorer
 	verifier           Verifier
 	taskScheduler      TaskScheduler
@@ -62,14 +62,6 @@ type UserInfoFinder interface {
 	GetUserInfo(userID string) (userInfo *slack.User, err error)
 }
 
-// // OptionUserInfoFinder sets a userInfoFinder as the implementation for a RogerChallenger instance
-// func OptionUserInfoFinder(userInfoFinder UserInfoFinder) Option {
-// 	return func(rc *RogerChallenger) (err error) {
-// 		rc.userInfoFinder = userInfoFinder
-// 		return nil
-// 	}
-// }
-
 // BotIdentificator defines the interface for getting the bot's self id
 type BotIdentificator interface {
 	// GetBotID returns the bot user ID
@@ -101,14 +93,6 @@ func (sabi *SlackAPIBotIdentificator) GetBotID() (botUserID string, err error) {
 	return bot.ID, nil
 }
 
-// OptionBotIdentificator sets a botIdentificator as the implementation for a RogerChallenger instance
-// func OptionBotIdentificator(botIdentificator BotIdentificator) Option {
-// 	return func(rc *RogerChallenger) (err error) {
-// 		rc.botIdentificator = botIdentificator
-// 		return nil
-// 	}
-// }
-
 // OptionStorer sets a storer as the implementation on RogerChallenger
 func OptionStorer(storer Datastorer) Option {
 	return func(rc *RogerChallenger) (err error) {
@@ -123,27 +107,11 @@ type Messenger interface {
 	PostMessage(channelID string, options ...slack.MsgOption) (channel string, timestamp string, err error)
 }
 
-// OptionMessenger sets a messenger as the implementation on RogerChallenger
-// func OptionMessenger(messenger Messenger) Option {
-// 	return func(rc *RogerChallenger) (err error) {
-// 		rc.messenger = messenger
-// 		return nil
-// 	}
-// }
-
 // ChannelInfoFinder defines the interface for finding channel info
 type ChannelInfoFinder interface {
 	// GetChannelInfo fetches info on a channel. See https://godoc.org/github.com/nlopes/slack#Client.GetChannelInfo for more details
 	GetChannelInfo(channelID string) (channel *slack.Channel, err error)
 }
-
-// OptionChannelInfoFinder sets a channelInfoFinder as the implementation on RogerChallenger
-// func OptionChannelInfoFinder(channelInfoFinder ChannelInfoFinder) Option {
-// 	return func(rc *RogerChallenger) (err error) {
-// 		rc.channelInfoFinder = channelInfoFinder
-// 		return nil
-// 	}
-// }
 
 // OptionTaskScheduler sets a taskScheduler as the implementation on RogerChallenger
 func OptionTaskScheduler(taskScheduler TaskScheduler) Option {
@@ -172,10 +140,14 @@ type TeamServices struct {
 // TeamRouter defines the interface for routing to various tenanted services on team ID
 type TeamRouter interface {
 	Route(teamID string) (svcs TeamServices, err error)
+	TokenSaver
+	TokenLoader
 }
 
 type SingleTenantRouter struct {
 	services TeamServices
+	TokenSaver
+	TokenLoader
 }
 
 func (stRouter *SingleTenantRouter) Route(teamID string) (svcs TeamServices, err error) {
@@ -190,16 +162,17 @@ func NewSingleTenantRouter(userInfoFinder UserInfoFinder, botIdentificator BotId
 }
 
 type MultiTenantRouter struct {
-	projectID   string
-	storer      Datastorer
-	tokenLoader TokenLoader
-	tokenSaver  TokenSaver
-	svcsByTeam  map[string]TeamServices
+	debug      bool
+	projectID  string
+	storer     Datastorer
+	svcsByTeam map[string]TeamServices
+	TokenLoader
+	TokenSaver
 }
 
 func (mtRouter *MultiTenantRouter) Route(teamID string) (svcs TeamServices, err error) {
 	if svcs, ok := mtRouter.svcsByTeam[teamID]; !ok {
-		token, err := mtRouter.tokenLoader.Load(mtRouter.projectID, teamID)
+		token, err := mtRouter.LoadToken(teamID)
 
 		if err != nil {
 			return svcs, errors.Wrapf(err, "team [%s] not found", teamID)
@@ -208,12 +181,12 @@ func (mtRouter *MultiTenantRouter) Route(teamID string) (svcs TeamServices, err 
 		ctx := context.Background()
 		var botInfo BotInfo
 		k := NewKeyWithNamespace("BotInfo", teamID, "Bot", nil)
-		err = rc.storer.Get(ctx, k, &botInfo)
+		err = mtRouter.storer.Get(ctx, k, &botInfo)
 		if err != nil {
 			return svcs, errors.Wrapf(err, "Error loading bot info [%s] for team [%s]", botInfo.UserID, teamID)
 		}
 
-		slackClient := slack.New(token, slack.OptionDebug(cast.ToBool(os.Getenv(debugEnv))))
+		slackClient := slack.New(token, slack.OptionDebug(mtRouter.debug))
 
 		teamSvcs := TeamServices{userInfoFinder: slackClient, botIdentificator: FixedBotIdentificator{botUserID: botInfo.UserID}, messenger: slackClient, channelInfoFinder: slackClient}
 		mtRouter.svcsByTeam[teamID] = teamSvcs
@@ -222,13 +195,14 @@ func (mtRouter *MultiTenantRouter) Route(teamID string) (svcs TeamServices, err 
 	return mtRouter.svcsByTeam[teamID], nil
 }
 
-func NewMultiTenantRouter(projectID string, storer Datastorer, tokenLoader TokenLoader, tokenSaver TokenSaver) (mtRouter *MultiTenantRouter, err error) {
+func NewMultiTenantRouter(projectID string, storer Datastorer, tokenLoader TokenLoader, tokenSaver TokenSaver, debug bool) (mtRouter *MultiTenantRouter, err error) {
 	mtRouter = new(MultiTenantRouter)
 	mtRouter.projectID = projectID
 	mtRouter.storer = storer
-	mtRouter.tokenSaver = tokenSaver
-	mtRouter.tokenLoader = tokenLoader
+	mtRouter.TokenSaver = tokenSaver
+	mtRouter.TokenLoader = tokenLoader
 	mtRouter.svcsByTeam = make(map[string]TeamServices)
+	mtRouter.debug = debug
 
 	return mtRouter, nil
 }
@@ -273,10 +247,11 @@ func OptionSlackBaseURL(slackBaseURL string) Option {
 
 // New creates a new instance of RogerChallenger with a baseURL, fitbit client id and secret as well as all of its required
 // dependencies via Option
-func New(baseURL string, fitbitClientID string, fitbitClientSecret string, slackClientID string, slackClientSecret string, opts ...Option) (rc *RogerChallenger, err error) {
+func New(baseURL string, slackAppID string, fitbitClientID string, fitbitClientSecret string, slackClientID string, slackClientSecret string, opts ...Option) (rc *RogerChallenger, err error) {
 	rc = new(RogerChallenger)
 
 	rc.baseURL = baseURL
+	rc.slackAppID = slackAppID
 	rc.fitbitAuthBaseURL = defaultFitbitAuthBaseURL
 	rc.fitbitAPIBaseURL = defaultFitbitAPIBaseURL
 	rc.slackBaseURL = defaultSlackBaseURL
