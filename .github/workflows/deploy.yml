@@ -21,7 +21,7 @@ jobs:
         id: go
 
       - name: Install landler
-        run: go install github.com/alexandre-normand/landler
+        run: GOBIN=${GITHUB_WORKSPACE}/bin/ go install github.com/alexandre-normand/landler
 
       - name: Prepare dependencies for gcloud deploy
         run: cd ${GITHUB_WORKSPACE}/cloudfunctions && go mod init github.com/${GITHUB_REPOSITORY}/cloudfunctions && go mod edit -replace github.com/alexandre-normand/rogerchallenger=../ && go build . && go mod vendor
@@ -30,4 +30,4 @@ jobs:
         with:
           version: '270.0.0'          
           service_account_key: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}
-      - run: cd $GITHUB_WORKSPACE/cloudfunctions && landler | xargs -I % gcloud functions deploy % --runtime go111 --trigger-http --allow-unauthenticated
+      - run: cd $GITHUB_WORKSPACE/cloudfunctions && ${GITHUB_WORKSPACE}/bin/landler | xargs -I % gcloud functions deploy % --runtime go111 --trigger-http --allow-unauthenticated
