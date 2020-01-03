@@ -1,4 +1,4 @@
-name: Deploy on new Tag
+name: Deploy
 
 on:
   push:
@@ -26,8 +26,11 @@ jobs:
       - name: Prepare dependencies for gcloud deploy
         run: cd ${GITHUB_WORKSPACE}/cloudfunctions && go mod init github.com/${GITHUB_REPOSITORY}/cloudfunctions && go mod edit -replace github.com/alexandre-normand/rogerchallenger=../ && go build . && go mod vendor
 
-      - uses: GoogleCloudPlatform/github-actions/setup-gcloud@master
+      - name: Setup gcloud tools
+        uses: GoogleCloudPlatform/github-actions/setup-gcloud@master
         with:
           version: '270.0.0'          
           service_account_key: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}
-      - run: cd $GITHUB_WORKSPACE/cloudfunctions && ${GITHUB_WORKSPACE}/bin/landler | xargs -I % gcloud --project rogerchallenger functions deploy % --runtime go111 --trigger-http --allow-unauthenticated
+      
+      - name: Deploy functions
+        run: cd $GITHUB_WORKSPACE/cloudfunctions && ${GITHUB_WORKSPACE}/bin/landler | xargs -I % gcloud --project rogerchallenger functions deploy % --runtime go111 --trigger-http --allow-unauthenticated
