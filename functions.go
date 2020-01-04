@@ -1,4 +1,4 @@
-package rogerchallenger
+package stepcurry
 
 import (
 	"cloud.google.com/go/datastore"

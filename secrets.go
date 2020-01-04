@@ -1,4 +1,4 @@
-package rogerchallenger
+package stepcurry
 
 type TokenLoader interface {
 	LoadToken(teamID string) (token string, err error)

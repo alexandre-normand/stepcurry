@@ -2,7 +2,7 @@ package cloudfunctions
 
 import (
 	"fmt"
-	"github.com/alexandre-normand/rogerchallenger"
+	"github.com/alexandre-normand/stepcurry"
 	"github.com/spf13/cast"
 	"net/http"
 	"os"
@@ -20,7 +20,7 @@ const (
 	challengeUpdatesQueue = "challenge-updates"
 )
 
-var rc *rogerchallenger.RogerChallenger
+var rc *stepcurry.RogerChallenger
 
 func init() {
 	projectID := os.Getenv(projectIDEnv)
@@ -31,23 +31,23 @@ func init() {
 		panic(fmt.Sprintf("Failed to load Roger Challenger secrets: %s", err.Error()))
 	}
 
-	storer, err := rogerchallenger.NewDatastorer(projectID)
+	storer, err := stepcurry.NewDatastorer(projectID)
 	if err != nil {
 		panic(fmt.Sprintf("Failed to initialize datastore: %s", err.Error()))
 	}
 
-	taskScheduler, err := rogerchallenger.NewTaskScheduler(projectID, region, challengeUpdatesQueue)
+	taskScheduler, err := stepcurry.NewTaskScheduler(projectID, region, challengeUpdatesQueue)
 	if err != nil {
 		panic(fmt.Sprintf("Failed to initialize Cloud Tasks Client: %s", err.Error()))
 	}
 
 	tokenManager := NewMultiTenantTokenManager(projectID)
-	router, err := rogerchallenger.NewMultiTenantRouter(projectID, storer, tokenManager, tokenManager, cast.ToBool(os.Getenv(debugEnv)))
+	router, err := stepcurry.NewMultiTenantRouter(projectID, storer, tokenManager, tokenManager, cast.ToBool(os.Getenv(debugEnv)))
 	if err != nil {
 		panic(fmt.Sprintf("Failed to initialize Roger Challenger: %s", err.Error()))
 	}
 
-	roger, err := rogerchallenger.New(inferBaseURL(projectID, region), appID, fitbitClientID, fitbitClientSecret, slackClientID, slackClientSecret, rogerchallenger.OptionSlackVerifier(slackSigningSecret), rogerchallenger.OptionStorer(storer), rogerchallenger.OptionTeamRouter(router), rogerchallenger.OptionTaskScheduler(taskScheduler))
+	roger, err := stepcurry.New(inferBaseURL(projectID, region), appID, fitbitClientID, fitbitClientSecret, slackClientID, slackClientSecret, stepcurry.OptionSlackVerifier(slackSigningSecret), stepcurry.OptionStorer(storer), stepcurry.OptionTeamRouter(router), stepcurry.OptionTaskScheduler(taskScheduler))
 	if err != nil {
 		panic(fmt.Sprintf("Failed to initialize Roger Challenger: %s", err.Error()))
 	}

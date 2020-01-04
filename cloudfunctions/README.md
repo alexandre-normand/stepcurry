@@ -7,7 +7,7 @@
 ## Deploy
 
 ```
-go mod init github.com/alexandre-normand/rogerchallenger/cloudfunctions
+go mod init github.com/alexandre-normand/stepcurry/cloudfunctions
 go build .
 go mod vendor
 landler | xargs -I % gcloud functions deploy % --runtime go111 --trigger-http --allow-unauthenticated

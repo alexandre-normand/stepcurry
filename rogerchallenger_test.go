@@ -1,8 +1,8 @@
-package rogerchallenger
+package stepcurry
 
 import (
 	"fmt"
-	"github.com/alexandre-normand/rogerchallenger/mocks"
+	"github.com/alexandre-normand/stepcurry/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"testing"
@@ -41,34 +41,34 @@ func TestNewRogerChallenger(t *testing.T) {
 		expectedErr        error
 	}{
 		"WithAllDependencies": {
-			baseURL:            "https://rogerchallenger.com",
+			baseURL:            "https://stepcurry.com",
 			appID:              "roger",
 			fitbitClientID:     "clientID1",
 			fitbitClientSecret: "clientSecret1",
 			slackClientID:      "slackID1",
 			slackClientSecret:  "slackSecret1",
 			opts:               []Option{OptionTeamRouter(teamRouter), OptionStorer(storer), OptionVerifier(verifier), OptionTaskScheduler(taskScheduler)},
-			expectedInstance:   &RogerChallenger{baseURL: "https://rogerchallenger.com", slackAppID: "roger", fitbitAPIBaseURL: defaultFitbitAPIBaseURL, fitbitAuthBaseURL: defaultFitbitAuthBaseURL, slackBaseURL: defaultSlackBaseURL, fitbitClientID: "clientID1", fitbitClientSecret: "clientSecret1", slackClientID: "slackID1", slackClientSecret: "slackSecret1"},
+			expectedInstance:   &RogerChallenger{baseURL: "https://stepcurry.com", slackAppID: "roger", fitbitAPIBaseURL: defaultFitbitAPIBaseURL, fitbitAuthBaseURL: defaultFitbitAuthBaseURL, slackBaseURL: defaultSlackBaseURL, fitbitClientID: "clientID1", fitbitClientSecret: "clientSecret1", slackClientID: "slackID1", slackClientSecret: "slackSecret1"},
 			expectedErr:        nil},
 		"WithFitbitURLsOverride": {
-			baseURL:            "https://rogerchallenger.com",
+			baseURL:            "https://stepcurry.com",
 			appID:              "roger",
 			fitbitClientID:     "clientID1",
 			fitbitClientSecret: "clientSecret1",
 			slackClientID:      "slackID1",
 			slackClientSecret:  "slackSecret1",
 			opts:               []Option{OptionFitbitURLs("https://beta.fitbit.com/auth", "https://beta.api.fitbit.com"), OptionTeamRouter(teamRouter), OptionStorer(storer), OptionVerifier(verifier), OptionTaskScheduler(taskScheduler)},
-			expectedInstance:   &RogerChallenger{baseURL: "https://rogerchallenger.com", slackAppID: "roger", fitbitAPIBaseURL: "https://beta.api.fitbit.com", fitbitAuthBaseURL: "https://beta.fitbit.com/auth", slackBaseURL: defaultSlackBaseURL, fitbitClientID: "clientID1", fitbitClientSecret: "clientSecret1", slackClientID: "slackID1", slackClientSecret: "slackSecret1"},
+			expectedInstance:   &RogerChallenger{baseURL: "https://stepcurry.com", slackAppID: "roger", fitbitAPIBaseURL: "https://beta.api.fitbit.com", fitbitAuthBaseURL: "https://beta.fitbit.com/auth", slackBaseURL: defaultSlackBaseURL, fitbitClientID: "clientID1", fitbitClientSecret: "clientSecret1", slackClientID: "slackID1", slackClientSecret: "slackSecret1"},
 			expectedErr:        nil},
 		"WithSlackURLOverride": {
-			baseURL:            "https://rogerchallenger.com",
+			baseURL:            "https://stepcurry.com",
 			appID:              "slackRoger",
 			fitbitClientID:     "clientID1",
 			fitbitClientSecret: "clientSecret1",
 			slackClientID:      "slackID1",
 			slackClientSecret:  "slackSecret1",
 			opts:               []Option{OptionSlackBaseURL("https://slack.io"), OptionTeamRouter(teamRouter), OptionStorer(storer), OptionVerifier(verifier), OptionTaskScheduler(taskScheduler)},
-			expectedInstance:   &RogerChallenger{baseURL: "https://rogerchallenger.com", slackAppID: "slackRoger", fitbitAPIBaseURL: defaultFitbitAPIBaseURL, fitbitAuthBaseURL: defaultFitbitAuthBaseURL, slackBaseURL: "https://slack.io", fitbitClientID: "clientID1", fitbitClientSecret: "clientSecret1", slackClientID: "slackID1", slackClientSecret: "slackSecret1"},
+			expectedInstance:   &RogerChallenger{baseURL: "https://stepcurry.com", slackAppID: "slackRoger", fitbitAPIBaseURL: defaultFitbitAPIBaseURL, fitbitAuthBaseURL: defaultFitbitAuthBaseURL, slackBaseURL: "https://slack.io", fitbitClientID: "clientID1", fitbitClientSecret: "clientSecret1", slackClientID: "slackID1", slackClientSecret: "slackSecret1"},
 			expectedErr:        nil},
 		"WithoutDatastorer": {
 			baseURL:            "",

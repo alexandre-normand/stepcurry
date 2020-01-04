@@ -1,4 +1,4 @@
-module github.com/alexandre-normand/rogerchallenger
+module github.com/alexandre-normand/stepcurry
 
 go 1.11
 
