@@ -41,13 +41,13 @@ type TeamInfo struct {
 	Name string `json:"name,omitempty"`
 }
 
-func (rc *RogerChallenger) InvokeSlackAuth(w http.ResponseWriter, r *http.Request) {
-	redirectURI := fmt.Sprintf("%s/%s", rc.baseURL, "HandleSlackAuth")
-	slackAuthURL := fmt.Sprintf("%s/oauth/v2/authorize?client_id=%s&redirect_uri=%s&scope=%s", rc.slackBaseURL, rc.slackClientID, redirectURI, strings.Join(slackScopes[:], ","))
+func (sc *StepCurry) InvokeSlackAuth(w http.ResponseWriter, r *http.Request) {
+	redirectURI := fmt.Sprintf("%s/%s", sc.baseURL, "HandleSlackAuth")
+	slackAuthURL := fmt.Sprintf("%s/oauth/v2/authorize?client_id=%s&redirect_uri=%s&scope=%s", sc.slackBaseURL, sc.slackClientID, redirectURI, strings.Join(slackScopes[:], ","))
 	http.Redirect(w, r, slackAuthURL, http.StatusFound)
 }
 
-func (rc *RogerChallenger) HandleSlackAuth(w http.ResponseWriter, r *http.Request) {
+func (sc *StepCurry) HandleSlackAuth(w http.ResponseWriter, r *http.Request) {
 	codes, ok := r.URL.Query()["code"]
 	if !ok {
 		http.Error(w, "Missing authorization code", http.StatusBadRequest)
@@ -56,14 +56,14 @@ func (rc *RogerChallenger) HandleSlackAuth(w http.ResponseWriter, r *http.Reques
 
 	code := codes[0]
 
-	authResp, err := rc.exchangeSlackAuthCodeForToken(code)
+	authResp, err := sc.exchangeSlackAuthCodeForToken(code)
 	if err != nil {
 		log.Printf("Error getting slack access: %s", err.Error())
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	err = rc.SaveToken(authResp.Team.ID, authResp.AccessToken)
+	err = sc.SaveToken(authResp.Team.ID, authResp.AccessToken)
 	if err != nil {
 		log.Printf("Error saving slack token: %s", err.Error())
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -73,27 +73,27 @@ func (rc *RogerChallenger) HandleSlackAuth(w http.ResponseWriter, r *http.Reques
 	ctx := context.Background()
 	botInfo := BotInfo{UserID: authResp.BotUserID}
 	k := NewKeyWithNamespace("BotInfo", authResp.Team.ID, "Bot", nil)
-	_, err = rc.storer.Put(ctx, k, &botInfo)
+	_, err = sc.storer.Put(ctx, k, &botInfo)
 	if err != nil {
 		log.Printf("Error persisting bot info [%s] for team [%s]: %s", botInfo.UserID, authResp.Team.ID, err.Error())
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	w.Write([]byte(fmt.Sprintf("<html><head><meta http-equiv=\"refresh\" content=\"0;URL=https://slack.com/app_redirect?app=%s&team=%s\"></head></html>", rc.slackAppID, authResp.Team.ID)))
+	w.Write([]byte(fmt.Sprintf("<html><head><meta http-equiv=\"refresh\" content=\"0;URL=https://slack.com/app_redirect?app=%s&team=%s\"></head></html>", sc.slackAppID, authResp.Team.ID)))
 }
 
-func (rc *RogerChallenger) exchangeSlackAuthCodeForToken(code string) (authResp SlackAuthResponse, err error) {
-	redirectURI := fmt.Sprintf("%s/%s", rc.baseURL, "HandleSlackAuth")
+func (sc *StepCurry) exchangeSlackAuthCodeForToken(code string) (authResp SlackAuthResponse, err error) {
+	redirectURI := fmt.Sprintf("%s/%s", sc.baseURL, "HandleSlackAuth")
 
 	v := url.Values{}
-	v.Set("client_id", rc.slackClientID)
-	v.Set("client_secret", rc.slackClientSecret)
+	v.Set("client_id", sc.slackClientID)
+	v.Set("client_secret", sc.slackClientSecret)
 	v.Set("code", code)
 	v.Set("redirect_uri", redirectURI)
 
 	body := strings.NewReader(v.Encode())
-	tokenURL := fmt.Sprintf("%s/api/oauth.v2.access", rc.slackBaseURL)
+	tokenURL := fmt.Sprintf("%s/api/oauth.v2.access", sc.slackBaseURL)
 
 	req, err := http.NewRequest("POST", tokenURL, body)
 	if err != nil {
@@ -101,7 +101,7 @@ func (rc *RogerChallenger) exchangeSlackAuthCodeForToken(code string) (authResp 
 	}
 
 	req.Header.Add("Content-type", "application/x-www-form-urlencoded")
-	req.Header.Add("Authorization", fmt.Sprintf("Basic %s", base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s", rc.slackClientID, rc.slackClientSecret)))))
+	req.Header.Add("Authorization", fmt.Sprintf("Basic %s", base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s", sc.slackClientID, sc.slackClientSecret)))))
 
 	client := &http.Client{}
 	resp, err := client.Do(req)

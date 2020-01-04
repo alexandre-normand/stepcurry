@@ -104,9 +104,9 @@ type ActionResponse struct {
 	ReplaceOriginal bool          `json:"replace_original"`
 }
 
-// StartFitbitOauthFlow handles an incoming slack request in response to the /roger-link slash command
+// StartFitbitOauthFlow handles an incoming slack request in response to the /step-link slash command
 // and generates a URL for a user to initiate the oauth flow with the Fitbit 3rd party API
-func (rc *RogerChallenger) StartFitbitOauthFlow(w http.ResponseWriter, r *http.Request) {
+func (sc *StepCurry) StartFitbitOauthFlow(w http.ResponseWriter, r *http.Request) {
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		log.Printf("Error reading request body: %s", err.Error())
@@ -114,7 +114,7 @@ func (rc *RogerChallenger) StartFitbitOauthFlow(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	err = rc.verifier.Verify(r.Header, body)
+	err = sc.verifier.Verify(r.Header, body)
 	if err != nil {
 		log.Printf("Error validating request: %s", err.Error())
 		http.Error(w, err.Error(), 403)
@@ -145,15 +145,15 @@ func (rc *RogerChallenger) StartFitbitOauthFlow(w http.ResponseWriter, r *http.R
 
 	csrfKey := NewKeyWithNamespace("CsrfToken", authIDState.SlackTeam, authIDState.SlackUser, nil)
 	ctx := context.Background()
-	_, err = rc.storer.Put(ctx, csrfKey, &csrfToken)
+	_, err = sc.storer.Put(ctx, csrfKey, &csrfToken)
 	if err != nil {
 		log.Printf("Error persisting csrf token for user [%s]: %s", authIDState.SlackUser, err.Error())
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	redirectURI := fmt.Sprintf("%s/%s", rc.baseURL, oauthCallbackPath)
-	oauthLink := fmt.Sprintf("<%s/oauth2/authorize?response_type=code&client_id=%s&redirect_uri=%s&scope=activity&prompt=login_consent&state=%s", rc.fitbitAuthBaseURL, rc.fitbitClientID, url.QueryEscape(redirectURI), base64.URLEncoding.EncodeToString(oauthState))
+	redirectURI := fmt.Sprintf("%s/%s", sc.baseURL, oauthCallbackPath)
+	oauthLink := fmt.Sprintf("<%s/oauth2/authorize?response_type=code&client_id=%s&redirect_uri=%s&scope=activity&prompt=login_consent&state=%s", sc.fitbitAuthBaseURL, sc.fitbitClientID, url.QueryEscape(redirectURI), base64.URLEncoding.EncodeToString(oauthState))
 	oauthFlowMsg := fmt.Sprintf("%s|Head over> to Fitbit to login and authorize access to your account.\n\n"+
 		"If you consent, _Roger Challenger_ will use this to get your daily activity summary that will be shared in steps challenges you participate in. "+
 		"Note that you'll automatically be included in a steps challenge if you link your Fitbit account and are a "+
@@ -194,7 +194,7 @@ func parseSlackRequest(requestBody string) (params map[string]string, err error)
 //   1. Persisting a new challenge if one doesn't already exist for the channel/date
 //   2. Announcing the challenge on the channel
 //   3. Scheduling a first challenge ranking update
-func (rc *RogerChallenger) Challenge(w http.ResponseWriter, r *http.Request) {
+func (sc *StepCurry) Challenge(w http.ResponseWriter, r *http.Request) {
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		log.Printf("Error reading request body: %s", err.Error())
@@ -202,7 +202,7 @@ func (rc *RogerChallenger) Challenge(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = rc.verifier.Verify(r.Header, body)
+	err = sc.verifier.Verify(r.Header, body)
 	if err != nil {
 		log.Printf("Error validating request: %s", err.Error())
 		http.Error(w, err.Error(), 403)
@@ -222,7 +222,7 @@ func (rc *RogerChallenger) Challenge(w http.ResponseWriter, r *http.Request) {
 	userID := params[userIDParam]
 	responseURL := params[responseURLParam]
 
-	timezoneID, location, err := rc.getChannelTimezone(channel)
+	timezoneID, location, err := sc.getChannelTimezone(channel)
 	if err != nil {
 		log.Printf("Error getting channel timezone for channel [%s]: %s", channel, err.Error())
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -237,7 +237,7 @@ func (rc *RogerChallenger) Challenge(w http.ResponseWriter, r *http.Request) {
 	ctx := context.Background()
 	k := NewKeyWithNamespace("StepsChallenge", teamID, challengeID.Key(), nil)
 	var existingChallenge StepsChallenge
-	err = rc.storer.Get(ctx, k, &existingChallenge)
+	err = sc.storer.Get(ctx, k, &existingChallenge)
 	if err == nil && existingChallenge.Active {
 		membershipWarnMsg := ActionResponse{ResponseType: "ephemeral", ReplaceOriginal: false, Text: ":warning: There's already an active steps challenge so you know ¯\\_(ツ)_/¯"}
 		resp, err := req.Post(responseURL, req.BodyJSON(&membershipWarnMsg))
@@ -256,14 +256,14 @@ func (rc *RogerChallenger) Challenge(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	svcs, err := rc.Route(teamID)
+	svcs, err := sc.Route(teamID)
 	if err != nil {
 		log.Printf("Error getting api services for team id [%s]: %s", teamID, err.Error())
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	_, _, err = svcs.messenger.PostMessage(channel, slack.MsgOptionText(fmt.Sprintf("<@%s> started a steps challenge! Get moving :wind_blowing_face::athletic_shoe:. If you haven't linked your fitbit account already, type `/roger-link` and join in on the challenge.", userID), false))
+	_, _, err = svcs.messenger.PostMessage(channel, slack.MsgOptionText(fmt.Sprintf("<@%s> started a steps challenge! Get moving :wind_blowing_face::athletic_shoe:. If you haven't linked your fitbit account already, type `/step-link` and join in on the challenge.", userID), false))
 	if err != nil {
 		// TODO: consider an additional layered fallback strategy where we use https://godoc.org/github.com/nlopes/slack#Client.JoinConversation to try and join (that would work for public channels)
 		// before falling back to a message with instructions
@@ -299,14 +299,14 @@ func (rc *RogerChallenger) Challenge(w http.ResponseWriter, r *http.Request) {
 
 	stepsChallenge := StepsChallenge{ChallengeID: challengeID, Active: true, CreatorID: userID, CreationTime: creationTime, TimezoneID: timezoneID}
 
-	_, err = rc.storer.Put(ctx, k, &stepsChallenge)
+	_, err = sc.storer.Put(ctx, k, &stepsChallenge)
 	if err != nil {
 		log.Printf("Error persisting challenge for team [%s] and channel [%s]: %s", teamID, channel, err.Error())
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	err = rc.scheduleChallengeUpdate(challengeID, time.Now())
+	err = sc.scheduleChallengeUpdate(challengeID, time.Now())
 	if err != nil {
 		log.Printf("Error scheduling task: %s", err.Error())
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -315,7 +315,7 @@ func (rc *RogerChallenger) Challenge(w http.ResponseWriter, r *http.Request) {
 }
 
 // getChannelTimezone finds what should be the "master" timezone for a channel which informs the scheduling of the updates
-func (rc *RogerChallenger) getChannelTimezone(channelID string) (timezoneID string, location *time.Location, err error) {
+func (sc *StepCurry) getChannelTimezone(channelID string) (timezoneID string, location *time.Location, err error) {
 	// TODO: Replace this hardcoded value by logic to determine the winning channel timezone/location. This could be by
 	//   1. Getting the timezone from the slack user info and getting the most common one amongst participating fitbit users
 	//   2. If that fails because no one has linked their fitbit account yet, default to the channel creator and get their timezone from their user info
@@ -327,8 +327,8 @@ func (rc *RogerChallenger) getChannelTimezone(channelID string) (timezoneID stri
 
 // refreshChallenge gets updated step summaries from the fitbit API for all the fitbit users
 // part of a steps challenge and then renders and sends an updated ranking to the slack channel
-func (rc *RogerChallenger) refreshChallenge(stepsChallenge StepsChallenge) (err error) {
-	rankedUsers, err := rc.getChallengeRankedSteps(stepsChallenge)
+func (sc *StepCurry) refreshChallenge(stepsChallenge StepsChallenge) (err error) {
+	rankedUsers, err := sc.getChallengeRankedSteps(stepsChallenge)
 	if err != nil {
 		return errors.Wrap(err, "error getting activity summaries")
 	}
@@ -337,18 +337,18 @@ func (rc *RogerChallenger) refreshChallenge(stepsChallenge StepsChallenge) (err 
 	ctx := context.Background()
 	stepsChallenge.RankedUsers = rankedUsers
 	k := NewKeyWithNamespace("StepsChallenge", stepsChallenge.TeamID, stepsChallenge.ChallengeID.Key(), nil)
-	_, err = rc.storer.Put(ctx, k, &stepsChallenge)
+	_, err = sc.storer.Put(ctx, k, &stepsChallenge)
 	if err != nil {
 		return errors.Wrapf(err, "error persisting challenge [%s.%s]", stepsChallenge.TeamID, stepsChallenge.ChallengeID.Key())
 	}
 
-	svcs, err := rc.Route(stepsChallenge.TeamID)
+	svcs, err := sc.Route(stepsChallenge.TeamID)
 	if err != nil {
 		return errors.Wrapf(err, "error getting api services for team ID [%s]", stepsChallenge.TeamID)
 	}
 
 	renderBlocks := make([]slack.Block, 0)
-	renderedRanking := rc.renderStepsRanking(svcs, rankedUsers)
+	renderedRanking := sc.renderStepsRanking(svcs, rankedUsers)
 	if len(renderedRanking) > 0 {
 		bannerText := updateBanners[selectionRandom.Intn(len(updateBanners))]
 		renderBlocks = append(renderBlocks, slack.NewSectionBlock(slack.NewTextBlockObject("mrkdwn", bannerText, false, false), nil, nil))
@@ -374,8 +374,8 @@ func localizeCreationTime(creationTime time.Time, timezoneID string) (localized 
 }
 
 // wrapUpChallenge posts the winner of a challenge and marks the challenge as inactive
-func (rc *RogerChallenger) wrapUpChallenge(stepsChallenge StepsChallenge) (err error) {
-	rankedUsers, err := rc.getChallengeRankedSteps(stepsChallenge)
+func (sc *StepCurry) wrapUpChallenge(stepsChallenge StepsChallenge) (err error) {
+	rankedUsers, err := sc.getChallengeRankedSteps(stepsChallenge)
 	if err != nil {
 		return errors.Wrap(err, "error getting activity summaries")
 	}
@@ -385,18 +385,18 @@ func (rc *RogerChallenger) wrapUpChallenge(stepsChallenge StepsChallenge) (err e
 	stepsChallenge.Active = false
 	ctx := context.Background()
 	k := NewKeyWithNamespace("StepsChallenge", stepsChallenge.TeamID, stepsChallenge.ChallengeID.Key(), nil)
-	_, err = rc.storer.Put(ctx, k, &stepsChallenge)
+	_, err = sc.storer.Put(ctx, k, &stepsChallenge)
 	if err != nil {
 		return errors.Wrapf(err, "Error persisting final challenge [%s.%s]", stepsChallenge.TeamID, stepsChallenge.ChallengeID.Key())
 	}
 
-	svcs, err := rc.Route(stepsChallenge.TeamID)
+	svcs, err := sc.Route(stepsChallenge.TeamID)
 	if err != nil {
 		return errors.Wrapf(err, "error getting api services for team ID [%s]", stepsChallenge.TeamID)
 	}
 
 	renderBlocks := make([]slack.Block, 0)
-	renderedRanking := rc.renderStepsRanking(svcs, rankedUsers)
+	renderedRanking := sc.renderStepsRanking(svcs, rankedUsers)
 	if len(renderedRanking) > 0 {
 		bannerText := winnerAccouncementBanners[selectionRandom.Intn(len(winnerAccouncementBanners))]
 		renderBlocks = append(renderBlocks, slack.NewSectionBlock(slack.NewTextBlockObject("mrkdwn", bannerText, false, false), nil, nil))
@@ -412,7 +412,7 @@ func (rc *RogerChallenger) wrapUpChallenge(stepsChallenge StepsChallenge) (err e
 }
 
 // renderStepsRanking renders the user steps ranking as slack blocks to me included in a slack message
-func (rc *RogerChallenger) renderStepsRanking(services TeamServices, rankedUsers []UserSteps) (renderBlocks []slack.Block) {
+func (sc *StepCurry) renderStepsRanking(services TeamServices, rankedUsers []UserSteps) (renderBlocks []slack.Block) {
 	renderBlocks = make([]slack.Block, 0)
 
 	if len(rankedUsers) == 0 {
@@ -444,7 +444,7 @@ func (rc *RogerChallenger) renderStepsRanking(services TeamServices, rankedUsers
 	return renderBlocks
 }
 
-func (rc *RogerChallenger) Standings(w http.ResponseWriter, r *http.Request) {
+func (sc *StepCurry) Standings(w http.ResponseWriter, r *http.Request) {
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		log.Printf("Error reading request body: %s", err.Error())
@@ -452,7 +452,7 @@ func (rc *RogerChallenger) Standings(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = rc.verifier.Verify(r.Header, body)
+	err = sc.verifier.Verify(r.Header, body)
 	if err != nil {
 		log.Printf("Error validating request: %s", err.Error())
 		http.Error(w, err.Error(), 403)
@@ -471,7 +471,7 @@ func (rc *RogerChallenger) Standings(w http.ResponseWriter, r *http.Request) {
 	teamID := params[teamIDParam]
 	responseURL := params[responseURLParam]
 
-	_, location, err := rc.getChannelTimezone(channel)
+	_, location, err := sc.getChannelTimezone(channel)
 	if err != nil {
 		log.Printf("Error getting channel timezone for channel [%s]: %s", channel, err.Error())
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -485,7 +485,7 @@ func (rc *RogerChallenger) Standings(w http.ResponseWriter, r *http.Request) {
 	ctx := context.Background()
 	var stepsChallenge StepsChallenge
 	k := NewKeyWithNamespace("StepsChallenge", teamID, challengeID.Key(), nil)
-	err = rc.storer.Get(ctx, k, &stepsChallenge)
+	err = sc.storer.Get(ctx, k, &stepsChallenge)
 	// If the challenge doesn't exist and a message to the requester and return
 	if (err != nil && err == datastore.ErrNoSuchEntity) || (err == nil && !stepsChallenge.Active) {
 		noChallengeMsg := ActionResponse{ResponseType: "ephemeral", ReplaceOriginal: false, Text: ":warning: There's no active challenge in this channel to report status on. Create one by using `/roger-challenge`"}
@@ -508,7 +508,7 @@ func (rc *RogerChallenger) Standings(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 
-	err = rc.refreshChallenge(stepsChallenge)
+	err = sc.refreshChallenge(stepsChallenge)
 	if err != nil {
 		log.Printf("Error refreshing challenge status: %s", err.Error())
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -518,7 +518,7 @@ func (rc *RogerChallenger) Standings(w http.ResponseWriter, r *http.Request) {
 
 // UpdateChallenge handles a request to update a challenge. The requests are usually
 // coming from tasks scheduled via scheduleChallengeUpdate
-func (rc *RogerChallenger) UpdateChallenge(w http.ResponseWriter, r *http.Request) {
+func (sc *StepCurry) UpdateChallenge(w http.ResponseWriter, r *http.Request) {
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		log.Printf("Error reading request body: %s", err.Error())
@@ -538,7 +538,7 @@ func (rc *RogerChallenger) UpdateChallenge(w http.ResponseWriter, r *http.Reques
 	ctx := context.Background()
 	var stepsChallenge StepsChallenge
 	k := NewKeyWithNamespace("StepsChallenge", challengeID.TeamID, challengeID.Key(), nil)
-	err = rc.storer.Get(ctx, k, &stepsChallenge)
+	err = sc.storer.Get(ctx, k, &stepsChallenge)
 	// If the challenge doesn't exist, return and don't shedule a next update
 	if err != nil && err == datastore.ErrNoSuchEntity {
 		log.Printf("Challenge not found id [%s.%s]", challengeID.TeamID, challengeID.Key())
@@ -567,14 +567,14 @@ func (rc *RogerChallenger) UpdateChallenge(w http.ResponseWriter, r *http.Reques
 		scheduledUpdate := now.Add(time.Duration(1) + time.Hour)
 		log.Printf("Challenge [%s.%s] scheduled for a regular update at [%s]", stepsChallenge.TeamID, stepsChallenge.ChallengeID.Key(), scheduledUpdate)
 
-		err = rc.refreshChallenge(stepsChallenge)
+		err = sc.refreshChallenge(stepsChallenge)
 		if err != nil {
 			log.Printf("Error refreshing challenge status: %s", err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
-		err = rc.scheduleChallengeUpdate(challengeID, scheduledUpdate)
+		err = sc.scheduleChallengeUpdate(challengeID, scheduledUpdate)
 		if err != nil {
 			log.Printf("Error scheduling next challenge update: %s", err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -584,7 +584,7 @@ func (rc *RogerChallenger) UpdateChallenge(w http.ResponseWriter, r *http.Reques
 	case now.After(endScheduledDayUpdates) && now.Before(finalChannelUpdateTime):
 		log.Printf("Challenge [%s.%s] scheduled for a final update at [%s]", stepsChallenge.TeamID, stepsChallenge.ChallengeID.Key(), finalChannelUpdateTime)
 
-		err = rc.scheduleChallengeUpdate(challengeID, finalChannelUpdateTime)
+		err = sc.scheduleChallengeUpdate(challengeID, finalChannelUpdateTime)
 		if err != nil {
 			log.Printf("Error scheduling next challenge update: %s", err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -593,7 +593,7 @@ func (rc *RogerChallenger) UpdateChallenge(w http.ResponseWriter, r *http.Reques
 	// We're on or after the scheduled final update time so we mark the challenge as inactive after posting the winnner
 	case !now.Before(finalChannelUpdateTime):
 		log.Printf("Wrapping up challenge [%s.%s], no more updates scheduled", stepsChallenge.TeamID, stepsChallenge.ChallengeID.Key())
-		rc.wrapUpChallenge(stepsChallenge)
+		sc.wrapUpChallenge(stepsChallenge)
 	}
 }
 

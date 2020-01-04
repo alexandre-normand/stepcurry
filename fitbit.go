@@ -32,7 +32,7 @@ type FitbitApiAccess struct {
 	RefreshToken string `datastore:"refreshToken,noindex" json:"refresh_token,omitempty"`
 }
 
-// AuthIdentificationState holds data RogerChallenger requires to reconcile a oauth callback
+// AuthIdentificationState holds data StepCurry requires to reconcile a oauth callback
 // with the requesting slack user
 type AuthIdentificationState struct {
 	SlackUser    string `json:"slackUser"`
@@ -55,14 +55,14 @@ type Summary struct {
 	Floors int `json:"floors,omitempty"`
 }
 
-// ActivitySummaryResponse holds data RogerChallenger uses from the Fitbit activity web API. See
+// ActivitySummaryResponse holds data StepCurry uses from the Fitbit activity web API. See
 // details at https://dev.fitbit.com/build/reference/web-api/activity/#get-daily-activity-summary
 type ActivitySummaryResponse struct {
 	Goals   Goals   `json:"goals,omitempty"`
 	Summary Summary `json:"summary,omitempty"`
 }
 
-// Goals holds configured goals that RogerChallenger cares about. See details at
+// Goals holds configured goals that StepCurry cares about. See details at
 // https://dev.fitbit.com/build/reference/web-api/activity/#get-daily-activity-summary
 type Goals struct {
 	Steps int `json:"steps,omitempty"`
@@ -70,7 +70,7 @@ type Goals struct {
 
 // HandleFitbitAuth receives the oauth callback from Fitbit after a user has logged in and
 // consented to the access
-func (rc *RogerChallenger) HandleFitbitAuth(w http.ResponseWriter, r *http.Request) {
+func (sc *StepCurry) HandleFitbitAuth(w http.ResponseWriter, r *http.Request) {
 	codes, ok := r.URL.Query()["code"]
 	if !ok {
 		http.Error(w, "Missing authorization code", http.StatusBadRequest)
@@ -104,7 +104,7 @@ func (rc *RogerChallenger) HandleFitbitAuth(w http.ResponseWriter, r *http.Reque
 	ctx := context.Background()
 	var csrfToken CsrfToken
 	csrfKey := NewKeyWithNamespace("CsrfToken", authIDState.SlackTeam, authIDState.SlackUser, nil)
-	err = rc.storer.Get(ctx, csrfKey, &csrfToken)
+	err = sc.storer.Get(ctx, csrfKey, &csrfToken)
 
 	if err != nil {
 		if err == datastore.ErrNoSuchEntity {
@@ -124,14 +124,14 @@ func (rc *RogerChallenger) HandleFitbitAuth(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	err = rc.storer.Delete(ctx, csrfKey)
+	err = sc.storer.Delete(ctx, csrfKey)
 	if err != nil {
 		log.Printf("Error deleting up csrf token for user [%s]: %s", authIDState.SlackUser, err.Error())
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	apiAccess, err := rc.exchangeAuthCodeForApiAccess(code, string(rawState))
+	apiAccess, err := sc.exchangeAuthCodeForApiAccess(code, string(rawState))
 	if err != nil {
 		log.Printf("Error getting fitbit api access for user [%s]", authIDState.SlackUser)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -139,7 +139,7 @@ func (rc *RogerChallenger) HandleFitbitAuth(w http.ResponseWriter, r *http.Reque
 	}
 
 	apiKey := datastore.NameKey("FitbitApiAccess", apiAccess.FitbitUser, nil)
-	_, err = rc.storer.Put(ctx, apiKey, &apiAccess)
+	_, err = sc.storer.Put(ctx, apiKey, &apiAccess)
 	if err != nil {
 		log.Printf("Error persisting fitbit api access for fitbit user [%s]", apiAccess.FitbitUser)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -149,7 +149,7 @@ func (rc *RogerChallenger) HandleFitbitAuth(w http.ResponseWriter, r *http.Reque
 	clientAccess := ClientAccess{SlackUser: authIDState.SlackUser, SlackTeam: authIDState.SlackTeam, FitbitUser: apiAccess.FitbitUser}
 
 	k := NewKeyWithNamespace("ClientAccess", authIDState.SlackTeam, authIDState.SlackUser, nil)
-	_, err = rc.storer.Put(ctx, k, &clientAccess)
+	_, err = sc.storer.Put(ctx, k, &clientAccess)
 	if err != nil {
 		log.Printf("Error persisting fitbit user mapping for user [%s]", authIDState.SlackUser)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -175,16 +175,16 @@ func (rc *RogerChallenger) HandleFitbitAuth(w http.ResponseWriter, r *http.Reque
 }
 
 // exchangeAuthCodeForApiAccess runs a query with the Fitbit authentication API to exchange an auth code for an access token
-func (rc *RogerChallenger) exchangeAuthCodeForApiAccess(code string, state string) (apiAccess FitbitApiAccess, err error) {
+func (sc *StepCurry) exchangeAuthCodeForApiAccess(code string, state string) (apiAccess FitbitApiAccess, err error) {
 	v := url.Values{}
 	v.Set("code", code)
 	v.Set("grant_type", "authorization_code")
-	v.Set("redirect_uri", fmt.Sprintf("%s/%s", rc.baseURL, oauthCallbackPath))
+	v.Set("redirect_uri", fmt.Sprintf("%s/%s", sc.baseURL, oauthCallbackPath))
 	v.Set("state", state)
-	v.Set("client_id", rc.fitbitClientID)
+	v.Set("client_id", sc.fitbitClientID)
 
 	body := strings.NewReader(v.Encode())
-	tokenURL := fmt.Sprintf("%s/oauth2/token", rc.fitbitAPIBaseURL)
+	tokenURL := fmt.Sprintf("%s/oauth2/token", sc.fitbitAPIBaseURL)
 
 	req, err := http.NewRequest("POST", tokenURL, body)
 	if err != nil {
@@ -192,7 +192,7 @@ func (rc *RogerChallenger) exchangeAuthCodeForApiAccess(code string, state strin
 	}
 
 	req.Header.Add("Content-type", "application/x-www-form-urlencoded")
-	req.Header.Add("Authorization", fmt.Sprintf("Basic %s", base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s", rc.fitbitClientID, rc.fitbitClientSecret)))))
+	req.Header.Add("Authorization", fmt.Sprintf("Basic %s", base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s", sc.fitbitClientID, sc.fitbitClientSecret)))))
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
@@ -231,7 +231,7 @@ func (p byStepCount) Less(i, j int) bool {
 func (p byStepCount) Swap(i, j int) { p[i], p[j] = p[j], p[i] }
 
 // getChallengeRankedSteps fetches the updated ranking of all fitbit users participating in a steps challenge
-func (rc *RogerChallenger) getChallengeRankedSteps(stepsChallenge StepsChallenge) (rankedUsers []UserSteps, err error) {
+func (sc *StepCurry) getChallengeRankedSteps(stepsChallenge StepsChallenge) (rankedUsers []UserSteps, err error) {
 	userSteps := make([]UserSteps, 0)
 
 	localizedChallengeDate, _, err := localizeCreationTime(stepsChallenge.CreationTime, stepsChallenge.TimezoneID)
@@ -241,7 +241,7 @@ func (rc *RogerChallenger) getChallengeRankedSteps(stepsChallenge StepsChallenge
 
 	ctx := context.Background()
 	q := datastore.NewQuery("ClientAccess").Namespace(stepsChallenge.TeamID)
-	usersIterator := rc.storer.Run(ctx, q)
+	usersIterator := sc.storer.Run(ctx, q)
 
 	fitbitUsers := make(map[string]FitbitApiAccess)
 	var ca ClientAccess
@@ -252,7 +252,7 @@ func (rc *RogerChallenger) getChallengeRankedSteps(stepsChallenge StepsChallenge
 
 		k := datastore.NameKey("FitbitApiAccess", ca.FitbitUser, nil)
 		var apiAccess FitbitApiAccess
-		err := rc.storer.Get(ctx, k, &apiAccess)
+		err := sc.storer.Get(ctx, k, &apiAccess)
 		if err != nil {
 			return userSteps, err
 		}
@@ -260,7 +260,7 @@ func (rc *RogerChallenger) getChallengeRankedSteps(stepsChallenge StepsChallenge
 		fitbitUsers[ca.SlackUser] = apiAccess
 	}
 
-	svcs, err := rc.Route(stepsChallenge.TeamID)
+	svcs, err := sc.Route(stepsChallenge.TeamID)
 	if err != nil {
 		return userSteps, errors.Wrapf(err, "error getting channel members for channel id [%s]", stepsChallenge.ChannelID)
 	}
@@ -281,7 +281,7 @@ func (rc *RogerChallenger) getChallengeRankedSteps(stepsChallenge StepsChallenge
 	for _, user := range usersToFetch {
 		apiAccess := fitbitUsers[user]
 
-		if steps, err := rc.getUserSteps(user, apiAccess, localizedChallengeDate); err != nil {
+		if steps, err := sc.getUserSteps(user, apiAccess, localizedChallengeDate); err != nil {
 			log.Printf("Error reading step count for user [%s]: %s", user, err.Error())
 		} else {
 			userSteps = append(userSteps, UserSteps{UserID: user, Steps: steps})
@@ -293,8 +293,8 @@ func (rc *RogerChallenger) getChallengeRankedSteps(stepsChallenge StepsChallenge
 }
 
 // getUserSteps retrieves the steps summary for a given fitbit user using its access token
-func (rc *RogerChallenger) getUserSteps(slackUser string, apiAccess FitbitApiAccess, date time.Time) (steps int, err error) {
-	resp, err := rc.fetchActivitySummaryWithRefresh(slackUser, apiAccess, date)
+func (sc *StepCurry) getUserSteps(slackUser string, apiAccess FitbitApiAccess, date time.Time) (steps int, err error) {
+	resp, err := sc.fetchActivitySummaryWithRefresh(slackUser, apiAccess, date)
 	if err != nil {
 		return 0, errors.Wrapf(err, "error fetching activity summary for fitbit user [%s]", apiAccess.FitbitUser)
 	}
@@ -316,8 +316,8 @@ func (rc *RogerChallenger) getUserSteps(slackUser string, apiAccess FitbitApiAcc
 
 // fetchActivitySummaryWithRefresh fetches a user's activity summary and handles expired tokens by refreshing the token
 // if necessary
-func (rc *RogerChallenger) fetchActivitySummaryWithRefresh(slackUser string, apiAccess FitbitApiAccess, date time.Time) (resp *http.Response, err error) {
-	resp, err = rc.fetchActivitySummary(apiAccess, date)
+func (sc *StepCurry) fetchActivitySummaryWithRefresh(slackUser string, apiAccess FitbitApiAccess, date time.Time) (resp *http.Response, err error) {
+	resp, err = sc.fetchActivitySummary(apiAccess, date)
 	if err != nil {
 		return nil, err
 	}
@@ -326,20 +326,20 @@ func (rc *RogerChallenger) fetchActivitySummaryWithRefresh(slackUser string, api
 		log.Printf("Token expired for user [%s], refreshing...", slackUser)
 
 		// Refresh token
-		apiAccess, err := rc.exchangeRefreshTokenForApiAccess(apiAccess.RefreshToken)
+		apiAccess, err := sc.exchangeRefreshTokenForApiAccess(apiAccess.RefreshToken)
 		if err != nil {
 			return nil, errors.Wrapf(err, "error refreshing token for user [%s]", slackUser)
 		}
 
 		ctx := context.Background()
 		k := datastore.NameKey("FitbitApiAccess", apiAccess.FitbitUser, nil)
-		_, err = rc.storer.Put(ctx, k, &apiAccess)
+		_, err = sc.storer.Put(ctx, k, &apiAccess)
 		if err != nil {
 			return nil, errors.Wrapf(err, "Error persisting fitbit api access for slack user [%s]", slackUser)
 		}
 
 		// Refetch activity summary
-		resp, err = rc.fetchActivitySummary(apiAccess, date)
+		resp, err = sc.fetchActivitySummary(apiAccess, date)
 		if err != nil {
 			return nil, errors.Wrapf(err, "error fetching activity summary for slack user [%s]", slackUser)
 		}
@@ -349,8 +349,8 @@ func (rc *RogerChallenger) fetchActivitySummaryWithRefresh(slackUser string, api
 }
 
 // fetchActivitySummary fetches a user's activity summary
-func (rc *RogerChallenger) fetchActivitySummary(apiAccess FitbitApiAccess, date time.Time) (resp *http.Response, err error) {
-	req, err := http.NewRequest("GET", fmt.Sprintf("%s/1/user/%s/activities/date/%s.json", rc.fitbitAPIBaseURL, apiAccess.FitbitUser, date.Format(fitbitDateFormat)), nil)
+func (sc *StepCurry) fetchActivitySummary(apiAccess FitbitApiAccess, date time.Time) (resp *http.Response, err error) {
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s/1/user/%s/activities/date/%s.json", sc.fitbitAPIBaseURL, apiAccess.FitbitUser, date.Format(fitbitDateFormat)), nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "error creating activity summary request")
 	}
@@ -368,20 +368,20 @@ func (rc *RogerChallenger) fetchActivitySummary(apiAccess FitbitApiAccess, date 
 
 // exchangeRefreshTokenForApiAccess runs a request against the Fitbit authentication API to exchange a refresh token
 // to get a new access token (and updated refresh token)
-func (rc *RogerChallenger) exchangeRefreshTokenForApiAccess(refreshToken string) (apiAccess FitbitApiAccess, err error) {
+func (sc *StepCurry) exchangeRefreshTokenForApiAccess(refreshToken string) (apiAccess FitbitApiAccess, err error) {
 	v := url.Values{}
 	v.Set("grant_type", "refresh_token")
 	v.Set("refresh_token", refreshToken)
 
 	body := strings.NewReader(v.Encode())
 
-	req, err := http.NewRequest("POST", fmt.Sprintf("%s/oauth2/token", rc.fitbitAPIBaseURL), body)
+	req, err := http.NewRequest("POST", fmt.Sprintf("%s/oauth2/token", sc.fitbitAPIBaseURL), body)
 	if err != nil {
 		return apiAccess, errors.Wrap(err, "error creating refresh token request")
 	}
 
 	req.Header.Add("Content-type", "application/x-www-form-urlencoded")
-	req.Header.Add("Authorization", fmt.Sprintf("Basic %s", base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s", rc.fitbitClientID, rc.fitbitClientSecret)))))
+	req.Header.Add("Authorization", fmt.Sprintf("Basic %s", base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s", sc.fitbitClientID, sc.fitbitClientSecret)))))
 
 	client := &http.Client{}
 	resp, err := client.Do(req)

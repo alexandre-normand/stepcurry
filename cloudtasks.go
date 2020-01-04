@@ -71,8 +71,8 @@ func NewTaskScheduler(gcpProject string, gcpLocation string, taskQueueName strin
 }
 
 // scheduleChallengeUpdate creates a new task to update a challenge at the given scheduled time
-func (rc *RogerChallenger) scheduleChallengeUpdate(challengeID ChallengeID, scheduledTime time.Time) (err error) {
-	queueID := rc.taskScheduler.GenerateQueueID()
+func (sc *StepCurry) scheduleChallengeUpdate(challengeID ChallengeID, scheduledTime time.Time) (err error) {
+	queueID := sc.taskScheduler.GenerateQueueID()
 
 	scheduledTimestamp := timestamp.Timestamp{Seconds: scheduledTime.Unix()}
 
@@ -82,7 +82,7 @@ func (rc *RogerChallenger) scheduleChallengeUpdate(challengeID ChallengeID, sche
 			PayloadType: &taskspb.Task_HttpRequest{
 				HttpRequest: &taskspb.HttpRequest{
 					HttpMethod: taskspb.HttpMethod_POST,
-					Url:        fmt.Sprintf("%s/%s", rc.baseURL, updateChallengePath),
+					Url:        fmt.Sprintf("%s/%s", sc.baseURL, updateChallengePath),
 				},
 			},
 			ScheduleTime: &scheduledTimestamp,
@@ -97,7 +97,7 @@ func (rc *RogerChallenger) scheduleChallengeUpdate(challengeID ChallengeID, sche
 	req.Task.GetHttpRequest().Body = message
 
 	ctx := context.Background()
-	_, err = rc.taskScheduler.CreateTask(ctx, req)
+	_, err = sc.taskScheduler.CreateTask(ctx, req)
 
 	return err
 }

@@ -8,8 +8,8 @@ import (
 	"net/http"
 )
 
-// RogerChallenger holds state and dependencies for a server instance
-type RogerChallenger struct {
+// StepCurry holds state and dependencies for a server instance
+type StepCurry struct {
 	baseURL            string
 	fitbitAuthBaseURL  string
 	fitbitAPIBaseURL   string
@@ -26,8 +26,8 @@ type RogerChallenger struct {
 	TeamRouter
 }
 
-// Option is a function that applies an option to a RogerChallenger instance
-type Option func(rc *RogerChallenger) (err error)
+// Option is a function that applies an option to a StepCurry instance
+type Option func(sc *StepCurry) (err error)
 
 // Verifier is implemented by any value that has the Verify method
 type Verifier interface {
@@ -39,18 +39,18 @@ type SlackVerifier struct {
 	slackSigningSecret string
 }
 
-// OptionVerifier sets a verifier as the implementation on RogerChallenger
+// OptionVerifier sets a verifier as the implementation on StepCurry
 func OptionVerifier(verifier Verifier) Option {
-	return func(rc *RogerChallenger) (err error) {
-		rc.verifier = verifier
+	return func(sc *StepCurry) (err error) {
+		sc.verifier = verifier
 		return nil
 	}
 }
 
 // OptionSlackVerifier sets a nlopes/slack.Client as the implementation of Verifier
 func OptionSlackVerifier(slackSigningSecret string) Option {
-	return func(rc *RogerChallenger) (err error) {
-		rc.verifier = &SlackVerifier{slackSigningSecret: slackSigningSecret}
+	return func(sc *StepCurry) (err error) {
+		sc.verifier = &SlackVerifier{slackSigningSecret: slackSigningSecret}
 
 		return nil
 	}
@@ -93,10 +93,10 @@ func (sabi *SlackAPIBotIdentificator) GetBotID() (botUserID string, err error) {
 	return bot.ID, nil
 }
 
-// OptionStorer sets a storer as the implementation on RogerChallenger
+// OptionStorer sets a storer as the implementation on StepCurry
 func OptionStorer(storer Datastorer) Option {
-	return func(rc *RogerChallenger) (err error) {
-		rc.storer = storer
+	return func(sc *StepCurry) (err error) {
+		sc.storer = storer
 		return nil
 	}
 }
@@ -113,18 +113,18 @@ type ChannelInfoFinder interface {
 	GetChannelInfo(channelID string) (channel *slack.Channel, err error)
 }
 
-// OptionTaskScheduler sets a taskScheduler as the implementation on RogerChallenger
+// OptionTaskScheduler sets a taskScheduler as the implementation on StepCurry
 func OptionTaskScheduler(taskScheduler TaskScheduler) Option {
-	return func(rc *RogerChallenger) (err error) {
-		rc.taskScheduler = taskScheduler
+	return func(sc *StepCurry) (err error) {
+		sc.taskScheduler = taskScheduler
 		return nil
 	}
 }
 
-// OptionTeamRouter sets a teamRouter as the implementation on RogerChallenger
+// OptionTeamRouter sets a teamRouter as the implementation on StepCurry
 func OptionTeamRouter(teamRouter TeamRouter) Option {
-	return func(rc *RogerChallenger) (err error) {
-		rc.TeamRouter = teamRouter
+	return func(sc *StepCurry) (err error) {
+		sc.TeamRouter = teamRouter
 		return nil
 	}
 }
@@ -230,58 +230,58 @@ func (v SlackVerifier) Verify(header http.Header, body []byte) (err error) {
 
 // OptionFitbitURLs overrides the Fitbit base URLs
 func OptionFitbitURLs(fitbitAuthBaseURL string, fitbitAPIBaseUrl string) Option {
-	return func(rc *RogerChallenger) (err error) {
-		rc.fitbitAuthBaseURL = fitbitAuthBaseURL
-		rc.fitbitAPIBaseURL = fitbitAPIBaseUrl
+	return func(sc *StepCurry) (err error) {
+		sc.fitbitAuthBaseURL = fitbitAuthBaseURL
+		sc.fitbitAPIBaseURL = fitbitAPIBaseUrl
 		return nil
 	}
 }
 
 // OptionSlackBaseURL overrides the Slack base URL
 func OptionSlackBaseURL(slackBaseURL string) Option {
-	return func(rc *RogerChallenger) (err error) {
-		rc.slackBaseURL = slackBaseURL
+	return func(sc *StepCurry) (err error) {
+		sc.slackBaseURL = slackBaseURL
 		return nil
 	}
 }
 
-// New creates a new instance of RogerChallenger with a baseURL, fitbit client id and secret as well as all of its required
+// New creates a new instance of StepCurry with a baseURL, fitbit client id and secret as well as all of its required
 // dependencies via Option
-func New(baseURL string, slackAppID string, fitbitClientID string, fitbitClientSecret string, slackClientID string, slackClientSecret string, opts ...Option) (rc *RogerChallenger, err error) {
-	rc = new(RogerChallenger)
+func New(baseURL string, slackAppID string, fitbitClientID string, fitbitClientSecret string, slackClientID string, slackClientSecret string, opts ...Option) (sc *StepCurry, err error) {
+	sc = new(StepCurry)
 
-	rc.baseURL = baseURL
-	rc.slackAppID = slackAppID
-	rc.fitbitAuthBaseURL = defaultFitbitAuthBaseURL
-	rc.fitbitAPIBaseURL = defaultFitbitAPIBaseURL
-	rc.slackBaseURL = defaultSlackBaseURL
-	rc.slackClientID = slackClientID
-	rc.slackClientSecret = slackClientSecret
-	rc.fitbitClientID = fitbitClientID
-	rc.fitbitClientSecret = fitbitClientSecret
+	sc.baseURL = baseURL
+	sc.slackAppID = slackAppID
+	sc.fitbitAuthBaseURL = defaultFitbitAuthBaseURL
+	sc.fitbitAPIBaseURL = defaultFitbitAPIBaseURL
+	sc.slackBaseURL = defaultSlackBaseURL
+	sc.slackClientID = slackClientID
+	sc.slackClientSecret = slackClientSecret
+	sc.fitbitClientID = fitbitClientID
+	sc.fitbitClientSecret = fitbitClientSecret
 
 	for _, apply := range opts {
-		err := apply(rc)
+		err := apply(sc)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	if rc.storer == nil {
+	if sc.storer == nil {
 		return nil, fmt.Errorf("storer is nil after applying all Options. Did you forget to set one?")
 	}
 
-	if rc.verifier == nil {
+	if sc.verifier == nil {
 		return nil, fmt.Errorf("verifier is nil after applying all Options. Did you forget to set one?")
 	}
 
-	if rc.TeamRouter == nil {
+	if sc.TeamRouter == nil {
 		return nil, fmt.Errorf("teamRouter is nil after applying all Options. Did you forget to set one?")
 	}
 
-	if rc.taskScheduler == nil {
+	if sc.taskScheduler == nil {
 		return nil, fmt.Errorf("taskScheduler is nil after applying all Options. Did you forget to set one?")
 	}
 
-	return rc, nil
+	return sc, nil
 }

@@ -65,14 +65,14 @@ func TestHandleFitbitAuthCallbackUrlParsing(t *testing.T) {
 	teamRouter, err := NewSingleTenantRouter(userInfoFinder, nil, messenger, channelInfoFinder)
 	require.NoError(t, err)
 
-	rc, err := New("https://localhost", "roger", "fitbitClientID", "fitbitClientSecret", "slackClientID", "slackClientSecret", OptionTeamRouter(teamRouter), OptionVerifier(verifier), OptionStorer(storer), OptionTaskScheduler(taskScheduler))
+	sc, err := New("https://localhost", "roger", "fitbitClientID", "fitbitClientSecret", "slackClientID", "slackClientSecret", OptionTeamRouter(teamRouter), OptionVerifier(verifier), OptionStorer(storer), OptionTaskScheduler(taskScheduler))
 	require.NoError(t, err)
 
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
 			r := httptest.NewRequest(http.MethodGet, tc.callbackURL, strings.NewReader(""))
 			w := httptest.NewRecorder()
-			rc.HandleFitbitAuth(w, r)
+			sc.HandleFitbitAuth(w, r)
 
 			resp := w.Result()
 			rbody, _ := ioutil.ReadAll(resp.Body)
@@ -114,9 +114,9 @@ func TestHandleFitbitAuthCallbackWithErrorLoadingCsrfToken(t *testing.T) {
 	teamRouter, err := NewSingleTenantRouter(userInfoFinder, nil, messenger, channelInfoFinder)
 	require.NoError(t, err)
 
-	rc, err := New("https://localhost", "roger", "fitbitClientID", "fitbitClientSecret", "slackClientID", "slackClientSecret", OptionTeamRouter(teamRouter), OptionVerifier(verifier), OptionStorer(storer), OptionTaskScheduler(taskScheduler))
+	sc, err := New("https://localhost", "roger", "fitbitClientID", "fitbitClientSecret", "slackClientID", "slackClientSecret", OptionTeamRouter(teamRouter), OptionVerifier(verifier), OptionStorer(storer), OptionTaskScheduler(taskScheduler))
 	require.NoError(t, err)
-	rc.HandleFitbitAuth(w, r)
+	sc.HandleFitbitAuth(w, r)
 
 	resp := w.Result()
 	rbody, _ := ioutil.ReadAll(resp.Body)
@@ -156,9 +156,9 @@ func TestHandleFitbitAuthCallbackWithMissingCsrfToken(t *testing.T) {
 	teamRouter, err := NewSingleTenantRouter(userInfoFinder, nil, messenger, channelInfoFinder)
 	require.NoError(t, err)
 
-	rc, err := New("https://localhost", "roger", "fitbitClientID", "fitbitClientSecret", "slackClientID", "slackClientSecret", OptionTeamRouter(teamRouter), OptionVerifier(verifier), OptionStorer(storer), OptionTaskScheduler(taskScheduler))
+	sc, err := New("https://localhost", "roger", "fitbitClientID", "fitbitClientSecret", "slackClientID", "slackClientSecret", OptionTeamRouter(teamRouter), OptionVerifier(verifier), OptionStorer(storer), OptionTaskScheduler(taskScheduler))
 	require.NoError(t, err)
-	rc.HandleFitbitAuth(w, r)
+	sc.HandleFitbitAuth(w, r)
 
 	resp := w.Result()
 	rbody, _ := ioutil.ReadAll(resp.Body)
@@ -200,9 +200,9 @@ func TestHandleFitbitAuthCallbackWithUnexpectedCsrfToken(t *testing.T) {
 	teamRouter, err := NewSingleTenantRouter(userInfoFinder, nil, messenger, channelInfoFinder)
 	require.NoError(t, err)
 
-	rc, err := New("https://localhost", "roger", "fitbitClientID", "fitbitClientSecret", "slackClientID", "slackClientSecret", OptionTeamRouter(teamRouter), OptionVerifier(verifier), OptionStorer(storer), OptionTaskScheduler(taskScheduler))
+	sc, err := New("https://localhost", "roger", "fitbitClientID", "fitbitClientSecret", "slackClientID", "slackClientSecret", OptionTeamRouter(teamRouter), OptionVerifier(verifier), OptionStorer(storer), OptionTaskScheduler(taskScheduler))
 	require.NoError(t, err)
-	rc.HandleFitbitAuth(w, r)
+	sc.HandleFitbitAuth(w, r)
 
 	resp := w.Result()
 	rbody, _ := ioutil.ReadAll(resp.Body)
@@ -248,9 +248,9 @@ func TestHandleFitbitAuthCallbackWithErrorDeletingToken(t *testing.T) {
 	teamRouter, err := NewSingleTenantRouter(userInfoFinder, nil, messenger, channelInfoFinder)
 	require.NoError(t, err)
 
-	rc, err := New("https://localhost", "roger", "fitbitClientID", "fitbitClientSecret", "slackClientID", "slackClientSecret", OptionTeamRouter(teamRouter), OptionVerifier(verifier), OptionStorer(storer), OptionTaskScheduler(taskScheduler))
+	sc, err := New("https://localhost", "roger", "fitbitClientID", "fitbitClientSecret", "slackClientID", "slackClientSecret", OptionTeamRouter(teamRouter), OptionVerifier(verifier), OptionStorer(storer), OptionTaskScheduler(taskScheduler))
 	require.NoError(t, err)
-	rc.HandleFitbitAuth(w, r)
+	sc.HandleFitbitAuth(w, r)
 
 	resp := w.Result()
 	rbody, _ := ioutil.ReadAll(resp.Body)
@@ -304,9 +304,9 @@ func TestHandleFitbitAuthCallbackWithErrorExchangingCodeForToken(t *testing.T) {
 	teamRouter, err := NewSingleTenantRouter(userInfoFinder, nil, messenger, channelInfoFinder)
 	require.NoError(t, err)
 
-	rc, err := New("https://localhost", "roger", "fitbitClientID", "fitbitClientSecret", "slackClientID", "slackClientSecret", OptionTeamRouter(teamRouter), OptionFitbitURLs(server.URL, server.URL), OptionVerifier(verifier), OptionStorer(storer), OptionTaskScheduler(taskScheduler))
+	sc, err := New("https://localhost", "roger", "fitbitClientID", "fitbitClientSecret", "slackClientID", "slackClientSecret", OptionTeamRouter(teamRouter), OptionFitbitURLs(server.URL, server.URL), OptionVerifier(verifier), OptionStorer(storer), OptionTaskScheduler(taskScheduler))
 	require.NoError(t, err)
-	rc.HandleFitbitAuth(w, r)
+	sc.HandleFitbitAuth(w, r)
 
 	resp := w.Result()
 	rbody, _ := ioutil.ReadAll(resp.Body)
@@ -360,9 +360,9 @@ func TestHandleFitbitAuthCallbackWithInvalidTokenResponse(t *testing.T) {
 	teamRouter, err := NewSingleTenantRouter(userInfoFinder, nil, messenger, channelInfoFinder)
 	require.NoError(t, err)
 
-	rc, err := New("https://localhost", "roger", "fitbitClientID", "fitbitClientSecret", "slackClientID", "slackClientSecret", OptionTeamRouter(teamRouter), OptionFitbitURLs(server.URL, server.URL), OptionVerifier(verifier), OptionStorer(storer), OptionTaskScheduler(taskScheduler))
+	sc, err := New("https://localhost", "roger", "fitbitClientID", "fitbitClientSecret", "slackClientID", "slackClientSecret", OptionTeamRouter(teamRouter), OptionFitbitURLs(server.URL, server.URL), OptionVerifier(verifier), OptionStorer(storer), OptionTaskScheduler(taskScheduler))
 	require.NoError(t, err)
-	rc.HandleFitbitAuth(w, r)
+	sc.HandleFitbitAuth(w, r)
 
 	resp := w.Result()
 	rbody, _ := ioutil.ReadAll(resp.Body)
@@ -422,9 +422,9 @@ func TestHandleFitbitAuthCallbackWithErrorPersistingClientAccess(t *testing.T) {
 	teamRouter, err := NewSingleTenantRouter(userInfoFinder, nil, messenger, channelInfoFinder)
 	require.NoError(t, err)
 
-	rc, err := New("https://localhost", "roger", "fitbitClientID", "fitbitClientSecret", "slackClientID", "slackClientSecret", OptionTeamRouter(teamRouter), OptionFitbitURLs(server.URL, server.URL), OptionVerifier(verifier), OptionStorer(storer), OptionTaskScheduler(taskScheduler))
+	sc, err := New("https://localhost", "roger", "fitbitClientID", "fitbitClientSecret", "slackClientID", "slackClientSecret", OptionTeamRouter(teamRouter), OptionFitbitURLs(server.URL, server.URL), OptionVerifier(verifier), OptionStorer(storer), OptionTaskScheduler(taskScheduler))
 	require.NoError(t, err)
-	rc.HandleFitbitAuth(w, r)
+	sc.HandleFitbitAuth(w, r)
 
 	resp := w.Result()
 	rbody, _ := ioutil.ReadAll(resp.Body)
@@ -492,9 +492,9 @@ func TestHandleFitbitAuthCallbackWithErrorSendingResultMessage(t *testing.T) {
 	teamRouter, err := NewSingleTenantRouter(userInfoFinder, nil, messenger, channelInfoFinder)
 	require.NoError(t, err)
 
-	rc, err := New("https://localhost", "roger", "fitbitClientID", "fitbitClientSecret", "slackClientID", "slackClientSecret", OptionTeamRouter(teamRouter), OptionFitbitURLs(server.URL, server.URL), OptionVerifier(verifier), OptionStorer(storer), OptionTaskScheduler(taskScheduler))
+	sc, err := New("https://localhost", "roger", "fitbitClientID", "fitbitClientSecret", "slackClientID", "slackClientSecret", OptionTeamRouter(teamRouter), OptionFitbitURLs(server.URL, server.URL), OptionVerifier(verifier), OptionStorer(storer), OptionTaskScheduler(taskScheduler))
 	require.NoError(t, err)
-	rc.HandleFitbitAuth(w, r)
+	sc.HandleFitbitAuth(w, r)
 
 	resp := w.Result()
 	rbody, _ := ioutil.ReadAll(resp.Body)
@@ -562,9 +562,9 @@ func TestHandleFitbitAuthCallback(t *testing.T) {
 	teamRouter, err := NewSingleTenantRouter(userInfoFinder, nil, messenger, channelInfoFinder)
 	require.NoError(t, err)
 
-	rc, err := New("https://localhost", "roger", "fitbitClientID", "fitbitClientSecret", "slackClientID", "slackClientSecret", OptionTeamRouter(teamRouter), OptionFitbitURLs(server.URL, server.URL), OptionVerifier(verifier), OptionStorer(storer), OptionTaskScheduler(taskScheduler))
+	sc, err := New("https://localhost", "roger", "fitbitClientID", "fitbitClientSecret", "slackClientID", "slackClientSecret", OptionTeamRouter(teamRouter), OptionFitbitURLs(server.URL, server.URL), OptionVerifier(verifier), OptionStorer(storer), OptionTaskScheduler(taskScheduler))
 	require.NoError(t, err)
-	rc.HandleFitbitAuth(w, r)
+	sc.HandleFitbitAuth(w, r)
 
 	resp := w.Result()
 	rbody, _ := ioutil.ReadAll(resp.Body)

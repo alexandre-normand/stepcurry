@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-func TestNewRogerChallenger(t *testing.T) {
+func TestNewStepCurry(t *testing.T) {
 	verifier := &mocks.Verifier{}
 	defer verifier.AssertExpectations(t)
 
@@ -37,7 +37,7 @@ func TestNewRogerChallenger(t *testing.T) {
 		slackClientID      string
 		slackClientSecret  string
 		opts               []Option
-		expectedInstance   *RogerChallenger
+		expectedInstance   *StepCurry
 		expectedErr        error
 	}{
 		"WithAllDependencies": {
@@ -48,7 +48,7 @@ func TestNewRogerChallenger(t *testing.T) {
 			slackClientID:      "slackID1",
 			slackClientSecret:  "slackSecret1",
 			opts:               []Option{OptionTeamRouter(teamRouter), OptionStorer(storer), OptionVerifier(verifier), OptionTaskScheduler(taskScheduler)},
-			expectedInstance:   &RogerChallenger{baseURL: "https://stepcurry.com", slackAppID: "roger", fitbitAPIBaseURL: defaultFitbitAPIBaseURL, fitbitAuthBaseURL: defaultFitbitAuthBaseURL, slackBaseURL: defaultSlackBaseURL, fitbitClientID: "clientID1", fitbitClientSecret: "clientSecret1", slackClientID: "slackID1", slackClientSecret: "slackSecret1"},
+			expectedInstance:   &StepCurry{baseURL: "https://stepcurry.com", slackAppID: "roger", fitbitAPIBaseURL: defaultFitbitAPIBaseURL, fitbitAuthBaseURL: defaultFitbitAuthBaseURL, slackBaseURL: defaultSlackBaseURL, fitbitClientID: "clientID1", fitbitClientSecret: "clientSecret1", slackClientID: "slackID1", slackClientSecret: "slackSecret1"},
 			expectedErr:        nil},
 		"WithFitbitURLsOverride": {
 			baseURL:            "https://stepcurry.com",
@@ -58,7 +58,7 @@ func TestNewRogerChallenger(t *testing.T) {
 			slackClientID:      "slackID1",
 			slackClientSecret:  "slackSecret1",
 			opts:               []Option{OptionFitbitURLs("https://beta.fitbit.com/auth", "https://beta.api.fitbit.com"), OptionTeamRouter(teamRouter), OptionStorer(storer), OptionVerifier(verifier), OptionTaskScheduler(taskScheduler)},
-			expectedInstance:   &RogerChallenger{baseURL: "https://stepcurry.com", slackAppID: "roger", fitbitAPIBaseURL: "https://beta.api.fitbit.com", fitbitAuthBaseURL: "https://beta.fitbit.com/auth", slackBaseURL: defaultSlackBaseURL, fitbitClientID: "clientID1", fitbitClientSecret: "clientSecret1", slackClientID: "slackID1", slackClientSecret: "slackSecret1"},
+			expectedInstance:   &StepCurry{baseURL: "https://stepcurry.com", slackAppID: "roger", fitbitAPIBaseURL: "https://beta.api.fitbit.com", fitbitAuthBaseURL: "https://beta.fitbit.com/auth", slackBaseURL: defaultSlackBaseURL, fitbitClientID: "clientID1", fitbitClientSecret: "clientSecret1", slackClientID: "slackID1", slackClientSecret: "slackSecret1"},
 			expectedErr:        nil},
 		"WithSlackURLOverride": {
 			baseURL:            "https://stepcurry.com",
@@ -68,7 +68,7 @@ func TestNewRogerChallenger(t *testing.T) {
 			slackClientID:      "slackID1",
 			slackClientSecret:  "slackSecret1",
 			opts:               []Option{OptionSlackBaseURL("https://slack.io"), OptionTeamRouter(teamRouter), OptionStorer(storer), OptionVerifier(verifier), OptionTaskScheduler(taskScheduler)},
-			expectedInstance:   &RogerChallenger{baseURL: "https://stepcurry.com", slackAppID: "slackRoger", fitbitAPIBaseURL: defaultFitbitAPIBaseURL, fitbitAuthBaseURL: defaultFitbitAuthBaseURL, slackBaseURL: "https://slack.io", fitbitClientID: "clientID1", fitbitClientSecret: "clientSecret1", slackClientID: "slackID1", slackClientSecret: "slackSecret1"},
+			expectedInstance:   &StepCurry{baseURL: "https://stepcurry.com", slackAppID: "slackRoger", fitbitAPIBaseURL: defaultFitbitAPIBaseURL, fitbitAuthBaseURL: defaultFitbitAuthBaseURL, slackBaseURL: "https://slack.io", fitbitClientID: "clientID1", fitbitClientSecret: "clientSecret1", slackClientID: "slackID1", slackClientSecret: "slackSecret1"},
 			expectedErr:        nil},
 		"WithoutDatastorer": {
 			baseURL:            "",

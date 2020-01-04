@@ -38,10 +38,10 @@ func TestScheduleChallengeUpdate(t *testing.T) {
 	teamRouter, err := NewSingleTenantRouter(userInfoFinder, nil, messenger, channelInfoFinder)
 	require.NoError(t, err)
 
-	rc, err := New("https://stepcurry.com", "roger", "fitbitClientID", "fitbitClientSecret", "slackClientID", "slackClientSecret", OptionTeamRouter(teamRouter), OptionStorer(storer), OptionVerifier(verifier), OptionTaskScheduler(taskScheduler))
+	sc, err := New("https://stepcurry.com", "roger", "fitbitClientID", "fitbitClientSecret", "slackClientID", "slackClientSecret", OptionTeamRouter(teamRouter), OptionStorer(storer), OptionVerifier(verifier), OptionTaskScheduler(taskScheduler))
 	require.NoError(t, err)
 
-	err = rc.scheduleChallengeUpdate(ChallengeID{TeamID: "TEAMID", ChannelID: "CID", Date: "2019-10-11"}, time.Date(2019, 10, 12, 8, 0, 0, 0, time.UTC))
+	err = sc.scheduleChallengeUpdate(ChallengeID{TeamID: "TEAMID", ChannelID: "CID", Date: "2019-10-11"}, time.Date(2019, 10, 12, 8, 0, 0, 0, time.UTC))
 	require.NoError(t, err)
 }
 
@@ -71,10 +71,10 @@ func TestScheduleChallengeUpdateErrorOnCreateTask(t *testing.T) {
 	teamRouter, err := NewSingleTenantRouter(userInfoFinder, nil, messenger, channelInfoFinder)
 	require.NoError(t, err)
 
-	rc, err := New("https://stepcurry.com", "roger", "fitbitClientID", "fitbitClientSecret", "slackClientID", "slackClientSecret", OptionTeamRouter(teamRouter), OptionStorer(storer), OptionVerifier(verifier), OptionTaskScheduler(taskScheduler))
+	sc, err := New("https://stepcurry.com", "roger", "fitbitClientID", "fitbitClientSecret", "slackClientID", "slackClientSecret", OptionTeamRouter(teamRouter), OptionStorer(storer), OptionVerifier(verifier), OptionTaskScheduler(taskScheduler))
 	require.NoError(t, err)
 
-	err = rc.scheduleChallengeUpdate(ChallengeID{TeamID: "TEAMID", ChannelID: "CID", Date: "2019-10-11"}, time.Date(2019, 10, 12, 8, 0, 0, 0, time.UTC))
+	err = sc.scheduleChallengeUpdate(ChallengeID{TeamID: "TEAMID", ChannelID: "CID", Date: "2019-10-11"}, time.Date(2019, 10, 12, 8, 0, 0, 0, time.UTC))
 	require.Error(t, err, "cloud tasks unavailable")
 }
 

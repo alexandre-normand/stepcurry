@@ -40,9 +40,9 @@ func TestStartFitbitOauthFlowInvalidSlackSignature(t *testing.T) {
 	teamRouter, err := NewSingleTenantRouter(userInfoFinder, nil, messenger, channelInfoFinder)
 	require.NoError(t, err)
 
-	rc, err := New("https://localhost", "roger", "fitbitClientID", "fitbitClientSecret", "slackClientID", "slackClientSecret", OptionTeamRouter(teamRouter), OptionSlackVerifier("1e13414e22545115a2c62c3b8cd67dfe"), OptionStorer(storer), OptionTaskScheduler(taskScheduler))
+	sc, err := New("https://localhost", "roger", "fitbitClientID", "fitbitClientSecret", "slackClientID", "slackClientSecret", OptionTeamRouter(teamRouter), OptionSlackVerifier("1e13414e22545115a2c62c3b8cd67dfe"), OptionStorer(storer), OptionTaskScheduler(taskScheduler))
 	require.NoError(t, err)
-	rc.StartFitbitOauthFlow(w, r)
+	sc.StartFitbitOauthFlow(w, r)
 
 	resp := w.Result()
 	rbody, _ := ioutil.ReadAll(resp.Body)
@@ -81,9 +81,9 @@ func TestStartFitbitOauthFlowInvalidSlackRequest(t *testing.T) {
 	teamRouter, err := NewSingleTenantRouter(userInfoFinder, nil, messenger, channelInfoFinder)
 	require.NoError(t, err)
 
-	rc, err := New("https://localhost", "roger", "fitbitClientID", "fitbitClientSecret", "slackClientID", "slackClientSecret", OptionTeamRouter(teamRouter), OptionVerifier(verifier), OptionStorer(storer), OptionTaskScheduler(taskScheduler))
+	sc, err := New("https://localhost", "roger", "fitbitClientID", "fitbitClientSecret", "slackClientID", "slackClientSecret", OptionTeamRouter(teamRouter), OptionVerifier(verifier), OptionStorer(storer), OptionTaskScheduler(taskScheduler))
 	require.NoError(t, err)
-	rc.StartFitbitOauthFlow(w, r)
+	sc.StartFitbitOauthFlow(w, r)
 
 	resp := w.Result()
 	rbody, _ := ioutil.ReadAll(resp.Body)
@@ -125,9 +125,9 @@ func TestStartFitbitOauthFlowErrorSavingCsrfToken(t *testing.T) {
 	teamRouter, err := NewSingleTenantRouter(userInfoFinder, nil, messenger, channelInfoFinder)
 	require.NoError(t, err)
 
-	rc, err := New("https://localhost", "roger", "fitbitClientID", "fitbitClientSecret", "slackClientID", "slackClientSecret", OptionTeamRouter(teamRouter), OptionVerifier(verifier), OptionStorer(storer), OptionTaskScheduler(taskScheduler))
+	sc, err := New("https://localhost", "roger", "fitbitClientID", "fitbitClientSecret", "slackClientID", "slackClientSecret", OptionTeamRouter(teamRouter), OptionVerifier(verifier), OptionStorer(storer), OptionTaskScheduler(taskScheduler))
 	require.NoError(t, err)
-	rc.StartFitbitOauthFlow(w, r)
+	sc.StartFitbitOauthFlow(w, r)
 
 	resp := w.Result()
 	rbody, _ := ioutil.ReadAll(resp.Body)
@@ -175,9 +175,9 @@ func TestStartFitbitOauthFlowErrorSendingSlackMessage(t *testing.T) {
 	teamRouter, err := NewSingleTenantRouter(userInfoFinder, nil, messenger, channelInfoFinder)
 	require.NoError(t, err)
 
-	rc, err := New("https://localhost", "roger", "fitbitClientID", "fitbitClientSecret", "slackClientID", "slackClientSecret", OptionTeamRouter(teamRouter), OptionVerifier(verifier), OptionStorer(storer), OptionTaskScheduler(taskScheduler))
+	sc, err := New("https://localhost", "roger", "fitbitClientID", "fitbitClientSecret", "slackClientID", "slackClientSecret", OptionTeamRouter(teamRouter), OptionVerifier(verifier), OptionStorer(storer), OptionTaskScheduler(taskScheduler))
 	require.NoError(t, err)
-	rc.StartFitbitOauthFlow(w, r)
+	sc.StartFitbitOauthFlow(w, r)
 
 	resp := w.Result()
 	rbody, _ := ioutil.ReadAll(resp.Body)
@@ -227,9 +227,9 @@ func TestStartFitbitOauthFlow(t *testing.T) {
 	teamRouter, err := NewSingleTenantRouter(userInfoFinder, nil, messenger, channelInfoFinder)
 	require.NoError(t, err)
 
-	rc, err := New("https://localhost", "roger", "fitbitClientID", "fitbitClientSecret", "slackClientID", "slackClientSecret", OptionTeamRouter(teamRouter), OptionVerifier(verifier), OptionStorer(storer), OptionTaskScheduler(taskScheduler))
+	sc, err := New("https://localhost", "roger", "fitbitClientID", "fitbitClientSecret", "slackClientID", "slackClientSecret", OptionTeamRouter(teamRouter), OptionVerifier(verifier), OptionStorer(storer), OptionTaskScheduler(taskScheduler))
 	require.NoError(t, err)
-	rc.StartFitbitOauthFlow(w, r)
+	sc.StartFitbitOauthFlow(w, r)
 
 	resp := w.Result()
 	rbody, _ := ioutil.ReadAll(resp.Body)
