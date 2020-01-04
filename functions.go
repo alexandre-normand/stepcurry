@@ -155,7 +155,7 @@ func (sc *StepCurry) StartFitbitOauthFlow(w http.ResponseWriter, r *http.Request
 	redirectURI := fmt.Sprintf("%s/%s", sc.baseURL, oauthCallbackPath)
 	oauthLink := fmt.Sprintf("<%s/oauth2/authorize?response_type=code&client_id=%s&redirect_uri=%s&scope=activity&prompt=login_consent&state=%s", sc.fitbitAuthBaseURL, sc.fitbitClientID, url.QueryEscape(redirectURI), base64.URLEncoding.EncodeToString(oauthState))
 	oauthFlowMsg := fmt.Sprintf("%s|Head over> to Fitbit to login and authorize access to your account.\n\n"+
-		"If you consent, _Roger Challenger_ will use this to get your daily activity summary that will be shared in steps challenges you participate in. "+
+		"If you consent, _Step Curry_ will use this to get your daily activity summary that will be shared in steps challenges you participate in. "+
 		"Note that you'll automatically be included in a steps challenge if you link your Fitbit account and are a "+
 		"member of a channel where a steps challenge is active.", oauthLink)
 	oauthFlowMessage := ActionResponse{ResponseType: "ephemeral", Text: oauthFlowMsg}
