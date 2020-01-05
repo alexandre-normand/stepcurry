@@ -43,6 +43,13 @@ const (
 	startChallengePath  = "Challenge"
 )
 
+// Slash command names
+const (
+	commandLinkFitbit = "/step-link"
+	commandChallenge  = "/step-challenge"
+	commandStandings  = "/step-standings"
+)
+
 // Date formats
 const (
 	fitbitDateFormat    = "2006-01-02"
@@ -152,7 +159,7 @@ func (sc *StepCurry) StartFitbitOauthFlow(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	redirectURI := fmt.Sprintf("%s/%s", sc.baseURL, oauthCallbackPath)
+	redirectURI := fmt.Sprintf("%s/%s", sc.baseURL, sc.paths.FitbitAuthCallback)
 	oauthLink := fmt.Sprintf("<%s/oauth2/authorize?response_type=code&client_id=%s&redirect_uri=%s&scope=activity&prompt=login_consent&state=%s", sc.fitbitAuthBaseURL, sc.fitbitClientID, url.QueryEscape(redirectURI), base64.URLEncoding.EncodeToString(oauthState))
 	oauthFlowMsg := fmt.Sprintf("%s|Head over> to Fitbit to login and authorize access to your account.\n\n"+
 		"If you consent, _Step Curry_ will use this to get your daily activity summary that will be shared in steps challenges you participate in. "+
@@ -263,7 +270,7 @@ func (sc *StepCurry) Challenge(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, _, err = svcs.messenger.PostMessage(channel, slack.MsgOptionText(fmt.Sprintf("<@%s> started a steps challenge! Get moving :wind_blowing_face::athletic_shoe:. If you haven't linked your fitbit account already, type `/step-link` and join in on the challenge.", userID), false))
+	_, _, err = svcs.messenger.PostMessage(channel, slack.MsgOptionText(fmt.Sprintf("<@%s> started a steps challenge! Get moving :wind_blowing_face::athletic_shoe:. If you haven't linked your fitbit account already, type `%s` and join in on the challenge.", userID, sc.slashCommands.Link), false))
 	if err != nil {
 		// TODO: consider an additional layered fallback strategy where we use https://godoc.org/github.com/nlopes/slack#Client.JoinConversation to try and join (that would work for public channels)
 		// before falling back to a message with instructions
@@ -488,7 +495,7 @@ func (sc *StepCurry) Standings(w http.ResponseWriter, r *http.Request) {
 	err = sc.storer.Get(ctx, k, &stepsChallenge)
 	// If the challenge doesn't exist and a message to the requester and return
 	if (err != nil && err == datastore.ErrNoSuchEntity) || (err == nil && !stepsChallenge.Active) {
-		noChallengeMsg := ActionResponse{ResponseType: "ephemeral", ReplaceOriginal: false, Text: ":warning: There's no active challenge in this channel to report status on. Create one by using `/roger-challenge`"}
+		noChallengeMsg := ActionResponse{ResponseType: "ephemeral", ReplaceOriginal: false, Text: fmt.Sprintf(":warning: There's no active challenge in this channel to report status on. Create one by using `%s`", sc.slashCommands.Challenge)}
 		resp, err := req.Post(responseURL, req.BodyJSON(&noChallengeMsg))
 		if err != nil || resp.Response().StatusCode != 200 {
 			if err != nil {

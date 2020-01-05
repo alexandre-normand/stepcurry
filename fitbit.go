@@ -179,7 +179,7 @@ func (sc *StepCurry) exchangeAuthCodeForApiAccess(code string, state string) (ap
 	v := url.Values{}
 	v.Set("code", code)
 	v.Set("grant_type", "authorization_code")
-	v.Set("redirect_uri", fmt.Sprintf("%s/%s", sc.baseURL, oauthCallbackPath))
+	v.Set("redirect_uri", fmt.Sprintf("%s/%s", sc.baseURL, sc.paths.FitbitAuthCallback))
 	v.Set("state", state)
 	v.Set("client_id", sc.fitbitClientID)
 

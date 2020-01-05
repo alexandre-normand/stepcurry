@@ -23,7 +23,24 @@ type StepCurry struct {
 	storer             Datastorer
 	verifier           Verifier
 	taskScheduler      TaskScheduler
+	paths              Paths
+	slashCommands      SlashCommands
 	TeamRouter
+}
+
+// Paths holds the paths to the http handlers
+type Paths struct {
+	UpdateChallenge    string
+	FitbitAuthCallback string
+	LinkAccount        string
+	StartChallenge     string
+}
+
+// SlashCommands holds the names of the app's slash commands
+type SlashCommands struct {
+	Link      string
+	Challenge string
+	Standings string
 }
 
 // Option is a function that applies an option to a StepCurry instance
@@ -245,6 +262,22 @@ func OptionSlackBaseURL(slackBaseURL string) Option {
 	}
 }
 
+// OptionSlashCommands overrides the Slack command names
+func OptionSlashCommands(slashCommands SlashCommands) Option {
+	return func(sc *StepCurry) (err error) {
+		sc.slashCommands = slashCommands
+		return nil
+	}
+}
+
+// OptionPaths overrides the http handler names
+func OptionPaths(paths Paths) Option {
+	return func(sc *StepCurry) (err error) {
+		sc.paths = paths
+		return nil
+	}
+}
+
 // New creates a new instance of StepCurry with a baseURL, fitbit client id and secret as well as all of its required
 // dependencies via Option
 func New(baseURL string, slackAppID string, fitbitClientID string, fitbitClientSecret string, slackClientID string, slackClientSecret string, opts ...Option) (sc *StepCurry, err error) {
@@ -255,6 +288,8 @@ func New(baseURL string, slackAppID string, fitbitClientID string, fitbitClientS
 	sc.fitbitAuthBaseURL = defaultFitbitAuthBaseURL
 	sc.fitbitAPIBaseURL = defaultFitbitAPIBaseURL
 	sc.slackBaseURL = defaultSlackBaseURL
+	sc.slashCommands = SlashCommands{Link: commandLinkFitbit, Challenge: commandChallenge, Standings: commandStandings}
+	sc.paths = Paths{UpdateChallenge: updateChallengePath, FitbitAuthCallback: oauthCallbackPath, LinkAccount: linkAccountPath, StartChallenge: startChallengePath}
 	sc.slackClientID = slackClientID
 	sc.slackClientSecret = slackClientSecret
 	sc.fitbitClientID = fitbitClientID
