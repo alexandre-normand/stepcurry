@@ -111,6 +111,13 @@ func (sabi *SlackAPIBotIdentificator) GetBotID() (botUserID string, err error) {
 	return bot.ID, nil
 }
 
+func NewSlackAPIBotIdentificator(slackClient *slack.Client) (sabi *SlackAPIBotIdentificator) {
+	sabi = new(SlackAPIBotIdentificator)
+	sabi.slackClient = slackClient
+
+	return sabi
+}
+
 // OptionStorer sets a storer as the implementation on StepCurry
 func OptionStorer(storer Datastorer) Option {
 	return func(sc *StepCurry) (err error) {
