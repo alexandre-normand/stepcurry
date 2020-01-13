@@ -41,6 +41,7 @@ const (
 	oauthCallbackPath   = "HandleFitbitAuth"
 	linkAccountPath     = "LinkAccount"
 	startChallengePath  = "Challenge"
+	standingsPath       = "Standings"
 )
 
 // Slash command names

@@ -48,7 +48,7 @@ func TestNewStepCurry(t *testing.T) {
 			slackClientID:      "slackID1",
 			slackClientSecret:  "slackSecret1",
 			opts:               []Option{OptionTeamRouter(teamRouter), OptionStorer(storer), OptionVerifier(verifier), OptionTaskScheduler(taskScheduler)},
-			expectedInstance:   &StepCurry{baseURL: "https://stepcurry.com", slackAppID: "roger", fitbitAPIBaseURL: defaultFitbitAPIBaseURL, fitbitAuthBaseURL: defaultFitbitAuthBaseURL, slackBaseURL: defaultSlackBaseURL, fitbitClientID: "clientID1", fitbitClientSecret: "clientSecret1", slackClientID: "slackID1", slackClientSecret: "slackSecret1", slashCommands: SlashCommands{Link: commandLinkFitbit, Challenge: commandChallenge, Standings: commandStandings}, paths: Paths{UpdateChallenge: updateChallengePath, FitbitAuthCallback: oauthCallbackPath, LinkAccount: linkAccountPath, StartChallenge: startChallengePath}},
+			expectedInstance:   &StepCurry{baseURL: "https://stepcurry.com", slackAppID: "roger", fitbitAPIBaseURL: defaultFitbitAPIBaseURL, fitbitAuthBaseURL: defaultFitbitAuthBaseURL, slackBaseURL: defaultSlackBaseURL, fitbitClientID: "clientID1", fitbitClientSecret: "clientSecret1", slackClientID: "slackID1", slackClientSecret: "slackSecret1", slashCommands: SlashCommands{Link: commandLinkFitbit, Challenge: commandChallenge, Standings: commandStandings}, paths: Paths{UpdateChallenge: updateChallengePath, FitbitAuthCallback: oauthCallbackPath, LinkAccount: linkAccountPath, StartChallenge: startChallengePath, Standings: standingsPath}},
 			expectedErr:        nil},
 		"WithFitbitURLsOverride": {
 			baseURL:            "https://stepcurry.com",
@@ -58,7 +58,7 @@ func TestNewStepCurry(t *testing.T) {
 			slackClientID:      "slackID1",
 			slackClientSecret:  "slackSecret1",
 			opts:               []Option{OptionFitbitURLs("https://beta.fitbit.com/auth", "https://beta.api.fitbit.com"), OptionTeamRouter(teamRouter), OptionStorer(storer), OptionVerifier(verifier), OptionTaskScheduler(taskScheduler)},
-			expectedInstance:   &StepCurry{baseURL: "https://stepcurry.com", slackAppID: "roger", fitbitAPIBaseURL: "https://beta.api.fitbit.com", fitbitAuthBaseURL: "https://beta.fitbit.com/auth", slackBaseURL: defaultSlackBaseURL, fitbitClientID: "clientID1", fitbitClientSecret: "clientSecret1", slackClientID: "slackID1", slackClientSecret: "slackSecret1", slashCommands: SlashCommands{Link: commandLinkFitbit, Challenge: commandChallenge, Standings: commandStandings}, paths: Paths{UpdateChallenge: updateChallengePath, FitbitAuthCallback: oauthCallbackPath, LinkAccount: linkAccountPath, StartChallenge: startChallengePath}},
+			expectedInstance:   &StepCurry{baseURL: "https://stepcurry.com", slackAppID: "roger", fitbitAPIBaseURL: "https://beta.api.fitbit.com", fitbitAuthBaseURL: "https://beta.fitbit.com/auth", slackBaseURL: defaultSlackBaseURL, fitbitClientID: "clientID1", fitbitClientSecret: "clientSecret1", slackClientID: "slackID1", slackClientSecret: "slackSecret1", slashCommands: SlashCommands{Link: commandLinkFitbit, Challenge: commandChallenge, Standings: commandStandings}, paths: Paths{UpdateChallenge: updateChallengePath, FitbitAuthCallback: oauthCallbackPath, LinkAccount: linkAccountPath, StartChallenge: startChallengePath, Standings: standingsPath}},
 			expectedErr:        nil},
 		"WithSlackURLOverride": {
 			baseURL:            "https://stepcurry.com",
@@ -68,7 +68,7 @@ func TestNewStepCurry(t *testing.T) {
 			slackClientID:      "slackID1",
 			slackClientSecret:  "slackSecret1",
 			opts:               []Option{OptionSlackBaseURL("https://slack.io"), OptionTeamRouter(teamRouter), OptionStorer(storer), OptionVerifier(verifier), OptionTaskScheduler(taskScheduler)},
-			expectedInstance:   &StepCurry{baseURL: "https://stepcurry.com", slackAppID: "slackRoger", fitbitAPIBaseURL: defaultFitbitAPIBaseURL, fitbitAuthBaseURL: defaultFitbitAuthBaseURL, slackBaseURL: "https://slack.io", fitbitClientID: "clientID1", fitbitClientSecret: "clientSecret1", slackClientID: "slackID1", slackClientSecret: "slackSecret1", slashCommands: SlashCommands{Link: commandLinkFitbit, Challenge: commandChallenge, Standings: commandStandings}, paths: Paths{UpdateChallenge: updateChallengePath, FitbitAuthCallback: oauthCallbackPath, LinkAccount: linkAccountPath, StartChallenge: startChallengePath}},
+			expectedInstance:   &StepCurry{baseURL: "https://stepcurry.com", slackAppID: "slackRoger", fitbitAPIBaseURL: defaultFitbitAPIBaseURL, fitbitAuthBaseURL: defaultFitbitAuthBaseURL, slackBaseURL: "https://slack.io", fitbitClientID: "clientID1", fitbitClientSecret: "clientSecret1", slackClientID: "slackID1", slackClientSecret: "slackSecret1", slashCommands: SlashCommands{Link: commandLinkFitbit, Challenge: commandChallenge, Standings: commandStandings}, paths: Paths{UpdateChallenge: updateChallengePath, FitbitAuthCallback: oauthCallbackPath, LinkAccount: linkAccountPath, StartChallenge: startChallengePath, Standings: standingsPath}},
 			expectedErr:        nil},
 		"WithSlashCommandsOverride": {
 			baseURL:            "https://stepcurry.com",
@@ -78,7 +78,7 @@ func TestNewStepCurry(t *testing.T) {
 			slackClientID:      "slackID1",
 			slackClientSecret:  "slackSecret1",
 			opts:               []Option{OptionSlackBaseURL("https://slack.io"), OptionTeamRouter(teamRouter), OptionStorer(storer), OptionVerifier(verifier), OptionTaskScheduler(taskScheduler), OptionSlashCommands(SlashCommands{Link: "/roger-link", Challenge: "/roger-challenge", Standings: "/roger-standings"})},
-			expectedInstance:   &StepCurry{baseURL: "https://stepcurry.com", slackAppID: "slackRoger", fitbitAPIBaseURL: defaultFitbitAPIBaseURL, fitbitAuthBaseURL: defaultFitbitAuthBaseURL, slackBaseURL: "https://slack.io", fitbitClientID: "clientID1", fitbitClientSecret: "clientSecret1", slackClientID: "slackID1", slackClientSecret: "slackSecret1", slashCommands: SlashCommands{Link: "/roger-link", Challenge: "/roger-challenge", Standings: "/roger-standings"}, paths: Paths{UpdateChallenge: updateChallengePath, FitbitAuthCallback: oauthCallbackPath, LinkAccount: linkAccountPath, StartChallenge: startChallengePath}},
+			expectedInstance:   &StepCurry{baseURL: "https://stepcurry.com", slackAppID: "slackRoger", fitbitAPIBaseURL: defaultFitbitAPIBaseURL, fitbitAuthBaseURL: defaultFitbitAuthBaseURL, slackBaseURL: "https://slack.io", fitbitClientID: "clientID1", fitbitClientSecret: "clientSecret1", slackClientID: "slackID1", slackClientSecret: "slackSecret1", slashCommands: SlashCommands{Link: "/roger-link", Challenge: "/roger-challenge", Standings: "/roger-standings"}, paths: Paths{UpdateChallenge: updateChallengePath, FitbitAuthCallback: oauthCallbackPath, LinkAccount: linkAccountPath, StartChallenge: startChallengePath, Standings: standingsPath}},
 			expectedErr:        nil},
 		"WithPathsOverride": {
 			baseURL:            "https://stepcurry.com",
@@ -87,8 +87,8 @@ func TestNewStepCurry(t *testing.T) {
 			fitbitClientSecret: "clientSecret1",
 			slackClientID:      "slackID1",
 			slackClientSecret:  "slackSecret1",
-			opts:               []Option{OptionSlackBaseURL("https://slack.io"), OptionTeamRouter(teamRouter), OptionStorer(storer), OptionVerifier(verifier), OptionTaskScheduler(taskScheduler), OptionPaths(Paths{UpdateChallenge: "upt", FitbitAuthCallback: "callback", LinkAccount: "link", StartChallenge: "start"})},
-			expectedInstance:   &StepCurry{baseURL: "https://stepcurry.com", slackAppID: "slackRoger", fitbitAPIBaseURL: defaultFitbitAPIBaseURL, fitbitAuthBaseURL: defaultFitbitAuthBaseURL, slackBaseURL: "https://slack.io", fitbitClientID: "clientID1", fitbitClientSecret: "clientSecret1", slackClientID: "slackID1", slackClientSecret: "slackSecret1", slashCommands: SlashCommands{Link: commandLinkFitbit, Challenge: commandChallenge, Standings: commandStandings}, paths: Paths{UpdateChallenge: "upt", FitbitAuthCallback: "callback", LinkAccount: "link", StartChallenge: "start"}},
+			opts:               []Option{OptionSlackBaseURL("https://slack.io"), OptionTeamRouter(teamRouter), OptionStorer(storer), OptionVerifier(verifier), OptionTaskScheduler(taskScheduler), OptionPaths(Paths{UpdateChallenge: "upt", FitbitAuthCallback: "callback", LinkAccount: "link", StartChallenge: "start", Standings: "stand"})},
+			expectedInstance:   &StepCurry{baseURL: "https://stepcurry.com", slackAppID: "slackRoger", fitbitAPIBaseURL: defaultFitbitAPIBaseURL, fitbitAuthBaseURL: defaultFitbitAuthBaseURL, slackBaseURL: "https://slack.io", fitbitClientID: "clientID1", fitbitClientSecret: "clientSecret1", slackClientID: "slackID1", slackClientSecret: "slackSecret1", slashCommands: SlashCommands{Link: commandLinkFitbit, Challenge: commandChallenge, Standings: commandStandings}, paths: Paths{UpdateChallenge: "upt", FitbitAuthCallback: "callback", LinkAccount: "link", StartChallenge: "start", Standings: "stand"}},
 			expectedErr:        nil},
 		"WithoutDatastorer": {
 			baseURL:            "",

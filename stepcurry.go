@@ -34,6 +34,7 @@ type Paths struct {
 	FitbitAuthCallback string
 	LinkAccount        string
 	StartChallenge     string
+	Standings          string
 }
 
 // SlashCommands holds the names of the app's slash commands
@@ -289,7 +290,7 @@ func New(baseURL string, slackAppID string, fitbitClientID string, fitbitClientS
 	sc.fitbitAPIBaseURL = defaultFitbitAPIBaseURL
 	sc.slackBaseURL = defaultSlackBaseURL
 	sc.slashCommands = SlashCommands{Link: commandLinkFitbit, Challenge: commandChallenge, Standings: commandStandings}
-	sc.paths = Paths{UpdateChallenge: updateChallengePath, FitbitAuthCallback: oauthCallbackPath, LinkAccount: linkAccountPath, StartChallenge: startChallengePath}
+	sc.paths = Paths{UpdateChallenge: updateChallengePath, FitbitAuthCallback: oauthCallbackPath, LinkAccount: linkAccountPath, StartChallenge: startChallengePath, Standings: standingsPath}
 	sc.slackClientID = slackClientID
 	sc.slackClientSecret = slackClientSecret
 	sc.fitbitClientID = fitbitClientID
