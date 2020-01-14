@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"github.com/pkg/errors"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"net/url"
 	"strings"
@@ -47,27 +46,22 @@ func (sc *StepCurry) InvokeSlackAuth(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, slackAuthURL, http.StatusFound)
 }
 
-func (sc *StepCurry) HandleSlackAuth(w http.ResponseWriter, r *http.Request) {
+func (sc *StepCurry) HandleSlackAuth(w http.ResponseWriter, r *http.Request) error {
 	codes, ok := r.URL.Query()["code"]
 	if !ok {
-		http.Error(w, "Missing authorization code", http.StatusBadRequest)
-		return
+		return newHttpError(errors.New("Missing authorization code"), "", http.StatusBadRequest)
 	}
 
 	code := codes[0]
 
 	authResp, err := sc.exchangeSlackAuthCodeForToken(code)
 	if err != nil {
-		log.Printf("Error getting slack access: %s", err.Error())
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+		return newHttpError(err, "Error getting slack access", http.StatusInternalServerError)
 	}
 
 	err = sc.SaveToken(authResp.Team.ID, authResp.AccessToken)
 	if err != nil {
-		log.Printf("Error saving slack token: %s", err.Error())
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+		return newHttpError(err, "Error saving slack token", http.StatusInternalServerError)
 	}
 
 	ctx := context.Background()
@@ -75,12 +69,12 @@ func (sc *StepCurry) HandleSlackAuth(w http.ResponseWriter, r *http.Request) {
 	k := NewKeyWithNamespace("BotInfo", authResp.Team.ID, "Bot", nil)
 	_, err = sc.storer.Put(ctx, k, &botInfo)
 	if err != nil {
-		log.Printf("Error persisting bot info [%s] for team [%s]: %s", botInfo.UserID, authResp.Team.ID, err.Error())
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+		return newHttpError(err, fmt.Sprintf("Error persisting bot info [%s] for team [%s]", botInfo.UserID, authResp.Team.ID), http.StatusInternalServerError)
 	}
 
 	w.Write([]byte(fmt.Sprintf("<html><head><meta http-equiv=\"refresh\" content=\"0;URL=https://slack.com/app_redirect?app=%s&team=%s\"></head></html>", sc.slackAppID, authResp.Team.ID)))
+
+	return nil
 }
 
 func (sc *StepCurry) exchangeSlackAuthCodeForToken(code string) (authResp SlackAuthResponse, err error) {

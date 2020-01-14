@@ -20,27 +20,32 @@ func TestHandleFitbitAuthCallbackUrlParsing(t *testing.T) {
 	tests := map[string]struct {
 		callbackURL    string
 		expectedResult int
+		expectedError  string
 		expectedMsg    string
 	}{
 		"MissingCodeParam": {
 			callbackURL:    "/" + oauthCallbackPath,
 			expectedResult: http.StatusBadRequest,
-			expectedMsg:    "Missing authorization code\n",
+			expectedError:  "Missing authorization code",
+			expectedMsg:    "",
 		},
 		"MissingStateParam": {
 			callbackURL:    "/" + oauthCallbackPath + "?code=46f595a20e4cd85ce6abf6487eacdaaaf0ecf1c4",
 			expectedResult: http.StatusBadRequest,
-			expectedMsg:    "Missing Auth Identification State\n",
+			expectedError:  "Missing Auth Identification State",
+			expectedMsg:    "",
 		},
 		"InvalidBase64InStateParam": {
 			callbackURL:    "/" + oauthCallbackPath + "?code=46f595a20e4cd85ce6abf6487eacdaaaf0ecf1c4&state=@Invalid$",
 			expectedResult: http.StatusBadRequest,
-			expectedMsg:    "illegal base64 data at input byte 0\n",
+			expectedError:  "illegal base64 data at input byte 0",
+			expectedMsg:    "Error base64 decoding slack Auth Identification State",
 		},
 		"InvalidStateParamPayload": {
 			callbackURL:    "/" + oauthCallbackPath + "?code=46f595a20e4cd85ce6abf6487eacdaaaf0ecf1c4&state=dGVzdGFzZHNhZHNh",
 			expectedResult: http.StatusBadRequest,
-			expectedMsg:    "invalid character 'e' in literal true (expecting 'r')\n",
+			expectedError:  "invalid character 'e' in literal true (expecting 'r')",
+			expectedMsg:    "Error decoding Auth Identification State json",
 		},
 	}
 
@@ -72,13 +77,15 @@ func TestHandleFitbitAuthCallbackUrlParsing(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			r := httptest.NewRequest(http.MethodGet, tc.callbackURL, strings.NewReader(""))
 			w := httptest.NewRecorder()
-			sc.HandleFitbitAuth(w, r)
+			err = sc.HandleFitbitAuth(w, r)
 
-			resp := w.Result()
-			rbody, _ := ioutil.ReadAll(resp.Body)
+			require.Error(t, err)
+			require.IsType(t, new(httpError), err)
 
-			assert.Equal(t, tc.expectedResult, resp.StatusCode)
-			assert.Equal(t, tc.expectedMsg, string(rbody))
+			herr := err.(*httpError)
+			assert.EqualError(t, herr.err, tc.expectedError)
+			assert.Equal(t, tc.expectedMsg, herr.message)
+			assert.Equal(t, tc.expectedResult, herr.code)
 		})
 	}
 }
@@ -116,13 +123,15 @@ func TestHandleFitbitAuthCallbackWithErrorLoadingCsrfToken(t *testing.T) {
 
 	sc, err := New("https://localhost", "roger", "fitbitClientID", "fitbitClientSecret", "slackClientID", "slackClientSecret", OptionTeamRouter(teamRouter), OptionVerifier(verifier), OptionStorer(storer), OptionTaskScheduler(taskScheduler))
 	require.NoError(t, err)
-	sc.HandleFitbitAuth(w, r)
+	err = sc.HandleFitbitAuth(w, r)
 
-	resp := w.Result()
-	rbody, _ := ioutil.ReadAll(resp.Body)
+	require.Error(t, err)
+	require.IsType(t, new(httpError), err)
 
-	assert.Equal(t, http.StatusInternalServerError, resp.StatusCode)
-	assert.Equal(t, "datastore: invalid entity type\n", string(rbody))
+	herr := err.(*httpError)
+	assert.EqualError(t, herr.err, "datastore: invalid entity type")
+	assert.Equal(t, "Error fetching csrf token for user [UCODE]", herr.message)
+	assert.Equal(t, http.StatusInternalServerError, herr.code)
 }
 
 func TestHandleFitbitAuthCallbackWithMissingCsrfToken(t *testing.T) {
@@ -158,13 +167,15 @@ func TestHandleFitbitAuthCallbackWithMissingCsrfToken(t *testing.T) {
 
 	sc, err := New("https://localhost", "roger", "fitbitClientID", "fitbitClientSecret", "slackClientID", "slackClientSecret", OptionTeamRouter(teamRouter), OptionVerifier(verifier), OptionStorer(storer), OptionTaskScheduler(taskScheduler))
 	require.NoError(t, err)
-	sc.HandleFitbitAuth(w, r)
+	err = sc.HandleFitbitAuth(w, r)
 
-	resp := w.Result()
-	rbody, _ := ioutil.ReadAll(resp.Body)
+	require.Error(t, err)
+	require.IsType(t, new(httpError), err)
 
-	assert.Equal(t, http.StatusUnauthorized, resp.StatusCode)
-	assert.Equal(t, "CSRF token not found\n", string(rbody))
+	herr := err.(*httpError)
+	assert.EqualError(t, herr.err, "datastore: no such entity")
+	assert.Equal(t, "CSRF token not found", herr.message)
+	assert.Equal(t, http.StatusUnauthorized, herr.code)
 }
 
 func TestHandleFitbitAuthCallbackWithUnexpectedCsrfToken(t *testing.T) {
@@ -202,13 +213,15 @@ func TestHandleFitbitAuthCallbackWithUnexpectedCsrfToken(t *testing.T) {
 
 	sc, err := New("https://localhost", "roger", "fitbitClientID", "fitbitClientSecret", "slackClientID", "slackClientSecret", OptionTeamRouter(teamRouter), OptionVerifier(verifier), OptionStorer(storer), OptionTaskScheduler(taskScheduler))
 	require.NoError(t, err)
-	sc.HandleFitbitAuth(w, r)
+	err = sc.HandleFitbitAuth(w, r)
 
-	resp := w.Result()
-	rbody, _ := ioutil.ReadAll(resp.Body)
+	require.Error(t, err)
+	require.IsType(t, new(httpError), err)
 
-	assert.Equal(t, http.StatusUnauthorized, resp.StatusCode)
-	assert.Equal(t, "Invalid CSRF Token\n", string(rbody))
+	herr := err.(*httpError)
+	assert.EqualError(t, herr.err, "CSRF token mismatch")
+	assert.Equal(t, "", herr.message)
+	assert.Equal(t, http.StatusUnauthorized, herr.code)
 }
 
 func TestHandleFitbitAuthCallbackWithErrorDeletingToken(t *testing.T) {
@@ -250,13 +263,15 @@ func TestHandleFitbitAuthCallbackWithErrorDeletingToken(t *testing.T) {
 
 	sc, err := New("https://localhost", "roger", "fitbitClientID", "fitbitClientSecret", "slackClientID", "slackClientSecret", OptionTeamRouter(teamRouter), OptionVerifier(verifier), OptionStorer(storer), OptionTaskScheduler(taskScheduler))
 	require.NoError(t, err)
-	sc.HandleFitbitAuth(w, r)
+	err = sc.HandleFitbitAuth(w, r)
 
-	resp := w.Result()
-	rbody, _ := ioutil.ReadAll(resp.Body)
+	require.Error(t, err)
+	require.IsType(t, new(httpError), err)
 
-	assert.Equal(t, http.StatusInternalServerError, resp.StatusCode)
-	assert.Equal(t, "backend error\n", string(rbody))
+	herr := err.(*httpError)
+	assert.EqualError(t, herr.err, "backend error")
+	assert.Equal(t, "Error deleting up csrf token for user [UCODE]", herr.message)
+	assert.Equal(t, http.StatusInternalServerError, herr.code)
 }
 
 func TestHandleFitbitAuthCallbackWithErrorExchangingCodeForToken(t *testing.T) {
@@ -265,7 +280,7 @@ func TestHandleFitbitAuthCallbackWithErrorExchangingCodeForToken(t *testing.T) {
 	defer server.Close()
 
 	mux.HandleFunc("/oauth2/token", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusServiceUnavailable)
+		http.Error(w, "come back again later", http.StatusServiceUnavailable)
 	})
 
 	stateValue := authIDStateToQueryParam(AuthIdentificationState{SlackUser: "UCODE", SlackChannel: "CGEN", SlackTeam: "TSOMETHING", ResponseURL: "ignored", CsrfToken: CsrfToken{Csrf: []byte("csrf")}})
@@ -306,13 +321,15 @@ func TestHandleFitbitAuthCallbackWithErrorExchangingCodeForToken(t *testing.T) {
 
 	sc, err := New("https://localhost", "roger", "fitbitClientID", "fitbitClientSecret", "slackClientID", "slackClientSecret", OptionTeamRouter(teamRouter), OptionFitbitURLs(server.URL, server.URL), OptionVerifier(verifier), OptionStorer(storer), OptionTaskScheduler(taskScheduler))
 	require.NoError(t, err)
-	sc.HandleFitbitAuth(w, r)
+	err = sc.HandleFitbitAuth(w, r)
 
-	resp := w.Result()
-	rbody, _ := ioutil.ReadAll(resp.Body)
+	require.Error(t, err)
+	require.IsType(t, new(httpError), err)
 
-	assert.Equal(t, http.StatusInternalServerError, resp.StatusCode)
-	assert.Equal(t, "error getting access token [503 Service Unavailable]: \n", string(rbody))
+	herr := err.(*httpError)
+	assert.EqualError(t, herr.err, "error getting access token [503 Service Unavailable]: come back again later\n")
+	assert.Equal(t, "Error getting fitbit api access for user [UCODE]", herr.message)
+	assert.Equal(t, http.StatusInternalServerError, herr.code)
 }
 
 func TestHandleFitbitAuthCallbackWithInvalidTokenResponse(t *testing.T) {
@@ -362,13 +379,15 @@ func TestHandleFitbitAuthCallbackWithInvalidTokenResponse(t *testing.T) {
 
 	sc, err := New("https://localhost", "roger", "fitbitClientID", "fitbitClientSecret", "slackClientID", "slackClientSecret", OptionTeamRouter(teamRouter), OptionFitbitURLs(server.URL, server.URL), OptionVerifier(verifier), OptionStorer(storer), OptionTaskScheduler(taskScheduler))
 	require.NoError(t, err)
-	sc.HandleFitbitAuth(w, r)
+	err = sc.HandleFitbitAuth(w, r)
 
-	resp := w.Result()
-	rbody, _ := ioutil.ReadAll(resp.Body)
+	require.Error(t, err)
+	require.IsType(t, new(httpError), err)
 
-	assert.Equal(t, http.StatusInternalServerError, resp.StatusCode)
-	assert.Equal(t, "error decoding api access response: unexpected end of JSON input\n", string(rbody))
+	herr := err.(*httpError)
+	assert.EqualError(t, herr.err, "error decoding api access response: unexpected end of JSON input")
+	assert.Equal(t, "Error getting fitbit api access for user [UCODE]", herr.message)
+	assert.Equal(t, http.StatusInternalServerError, herr.code)
 }
 
 func TestHandleFitbitAuthCallbackWithErrorPersistingClientAccess(t *testing.T) {
@@ -424,13 +443,15 @@ func TestHandleFitbitAuthCallbackWithErrorPersistingClientAccess(t *testing.T) {
 
 	sc, err := New("https://localhost", "roger", "fitbitClientID", "fitbitClientSecret", "slackClientID", "slackClientSecret", OptionTeamRouter(teamRouter), OptionFitbitURLs(server.URL, server.URL), OptionVerifier(verifier), OptionStorer(storer), OptionTaskScheduler(taskScheduler))
 	require.NoError(t, err)
-	sc.HandleFitbitAuth(w, r)
+	err = sc.HandleFitbitAuth(w, r)
 
-	resp := w.Result()
-	rbody, _ := ioutil.ReadAll(resp.Body)
+	require.Error(t, err)
+	require.IsType(t, new(httpError), err)
 
-	assert.Equal(t, http.StatusInternalServerError, resp.StatusCode)
-	assert.Equal(t, "backend error\n", string(rbody))
+	herr := err.(*httpError)
+	assert.EqualError(t, herr.err, "backend error")
+	assert.Equal(t, "Error persisting fitbit api access for fitbit user [1020]", herr.message)
+	assert.Equal(t, http.StatusInternalServerError, herr.code)
 }
 
 func TestHandleFitbitAuthCallbackWithErrorSendingResultMessage(t *testing.T) {
@@ -494,13 +515,15 @@ func TestHandleFitbitAuthCallbackWithErrorSendingResultMessage(t *testing.T) {
 
 	sc, err := New("https://localhost", "roger", "fitbitClientID", "fitbitClientSecret", "slackClientID", "slackClientSecret", OptionTeamRouter(teamRouter), OptionFitbitURLs(server.URL, server.URL), OptionVerifier(verifier), OptionStorer(storer), OptionTaskScheduler(taskScheduler))
 	require.NoError(t, err)
-	sc.HandleFitbitAuth(w, r)
+	err = sc.HandleFitbitAuth(w, r)
 
-	resp := w.Result()
-	rbody, _ := ioutil.ReadAll(resp.Body)
+	require.Error(t, err)
+	require.IsType(t, new(httpError), err)
 
-	assert.Equal(t, http.StatusInternalServerError, resp.StatusCode)
-	assert.Equal(t, "timeout\n", string(rbody))
+	herr := err.(*httpError)
+	assert.EqualError(t, herr.err, "Error writing oauth completion message: timeout")
+	assert.Equal(t, "", herr.message)
+	assert.Equal(t, http.StatusInternalServerError, herr.code)
 }
 
 func TestHandleFitbitAuthCallback(t *testing.T) {

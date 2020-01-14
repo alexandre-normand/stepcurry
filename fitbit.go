@@ -70,35 +70,29 @@ type Goals struct {
 
 // HandleFitbitAuth receives the oauth callback from Fitbit after a user has logged in and
 // consented to the access
-func (sc *StepCurry) HandleFitbitAuth(w http.ResponseWriter, r *http.Request) {
+func (sc *StepCurry) HandleFitbitAuth(w http.ResponseWriter, r *http.Request) error {
 	codes, ok := r.URL.Query()["code"]
 	if !ok {
-		http.Error(w, "Missing authorization code", http.StatusBadRequest)
-		return
+		return newHttpError(errors.New("Missing authorization code"), "", http.StatusBadRequest)
 	}
 
 	code := codes[0]
 
 	stateVal, ok := r.URL.Query()["state"]
 	if !ok {
-		http.Error(w, "Missing Auth Identification State", http.StatusBadRequest)
-		return
+		return newHttpError(errors.New("Missing Auth Identification State"), "", http.StatusBadRequest)
 	}
 
 	stateBase64 := stateVal[0]
 	var authIDState AuthIdentificationState
 	rawState, err := base64.URLEncoding.DecodeString(stateBase64)
 	if err != nil {
-		log.Printf("Error base64 decoding slack Auth Identification State: %s", err.Error())
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
+		return newHttpError(err, "Error base64 decoding slack Auth Identification State", http.StatusBadRequest)
 	}
 
 	err = json.Unmarshal(rawState, &authIDState)
 	if err != nil {
-		log.Printf("Error decoding Auth Identification State json: %s", err.Error())
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
+		return newHttpError(err, "Error decoding Auth Identification State json", http.StatusBadRequest)
 	}
 
 	ctx := context.Background()
@@ -108,42 +102,30 @@ func (sc *StepCurry) HandleFitbitAuth(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		if err == datastore.ErrNoSuchEntity {
-			log.Printf("CSRF token not found")
-			http.Error(w, "CSRF token not found", http.StatusUnauthorized)
-			return
+			return newHttpError(err, "CSRF token not found", http.StatusUnauthorized)
 		} else {
-			log.Printf("Error fetching csrf token for user [%s]: %s", authIDState.SlackUser, err.Error())
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
+			return newHttpError(err, fmt.Sprintf("Error fetching csrf token for user [%s]", authIDState.SlackUser), http.StatusInternalServerError)
 		}
 	}
 
 	if !bytes.Equal(authIDState.Csrf, csrfToken.Csrf) {
-		log.Printf("CSRF token mismatch")
-		http.Error(w, "Invalid CSRF Token", http.StatusUnauthorized)
-		return
+		return newHttpError(errors.New("CSRF token mismatch"), "", http.StatusUnauthorized)
 	}
 
 	err = sc.storer.Delete(ctx, csrfKey)
 	if err != nil {
-		log.Printf("Error deleting up csrf token for user [%s]: %s", authIDState.SlackUser, err.Error())
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+		return newHttpError(err, fmt.Sprintf("Error deleting up csrf token for user [%s]", authIDState.SlackUser), http.StatusInternalServerError)
 	}
 
 	apiAccess, err := sc.exchangeAuthCodeForApiAccess(code, string(rawState))
 	if err != nil {
-		log.Printf("Error getting fitbit api access for user [%s]", authIDState.SlackUser)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+		return newHttpError(err, fmt.Sprintf("Error getting fitbit api access for user [%s]", authIDState.SlackUser), http.StatusInternalServerError)
 	}
 
 	apiKey := datastore.NameKey("FitbitApiAccess", apiAccess.FitbitUser, nil)
 	_, err = sc.storer.Put(ctx, apiKey, &apiAccess)
 	if err != nil {
-		log.Printf("Error persisting fitbit api access for fitbit user [%s]", apiAccess.FitbitUser)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+		return newHttpError(err, fmt.Sprintf("Error persisting fitbit api access for fitbit user [%s]", apiAccess.FitbitUser), http.StatusInternalServerError)
 	}
 
 	clientAccess := ClientAccess{SlackUser: authIDState.SlackUser, SlackTeam: authIDState.SlackTeam, FitbitUser: apiAccess.FitbitUser}
@@ -151,27 +133,23 @@ func (sc *StepCurry) HandleFitbitAuth(w http.ResponseWriter, r *http.Request) {
 	k := NewKeyWithNamespace("ClientAccess", authIDState.SlackTeam, authIDState.SlackUser, nil)
 	_, err = sc.storer.Put(ctx, k, &clientAccess)
 	if err != nil {
-		log.Printf("Error persisting fitbit user mapping for user [%s]", authIDState.SlackUser)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+		return newHttpError(err, fmt.Sprintf("Error persisting fitbit user mapping for user [%s]", authIDState.SlackUser), http.StatusInternalServerError)
 	}
 
 	oauthCompleteMessage := ActionResponse{ResponseType: "ephemeral", ReplaceOriginal: false, Text: "POW :boom: You've got your Fitbit account linked and ready for some challenges :wind_blowing_face::athletic_shoe:"}
 	resp, err := req.Post(authIDState.ResponseURL, req.BodyJSON(&oauthCompleteMessage))
 	if err != nil || resp.Response().StatusCode != 200 {
 		if err != nil {
-			log.Printf("Error sending oauth completion message: %s", err.Error())
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return newHttpError(err, "Error sending oauth completion message", http.StatusInternalServerError)
 		} else {
-			log.Printf("Error writing oauth completion message: %s", resp.String())
-			http.Error(w, resp.String(), http.StatusInternalServerError)
+			return newHttpError(fmt.Errorf("Error writing oauth completion message: %s", resp.String()), "", http.StatusInternalServerError)
 		}
-
-		return
 	}
 
 	// We could do a server-side redirect but a client-side redirect clears the Fitbit consent page and looks more "done" to the user so that's the approach we're taking here
 	w.Write([]byte(fmt.Sprintf("<html><head><meta http-equiv=\"refresh\" content=\"0;URL=slack://channel?team=%s&id=%s\"></head></html>", authIDState.SlackTeam, authIDState.SlackChannel)))
+
+	return nil
 }
 
 // exchangeAuthCodeForApiAccess runs a query with the Fitbit authentication API to exchange an auth code for an access token
