@@ -2,6 +2,7 @@ package stepcurry
 
 import (
 	"cloud.google.com/go/datastore"
+	"errors"
 	"fmt"
 	"github.com/alexandre-normand/stepcurry/mocks"
 	"github.com/stretchr/testify/assert"
@@ -42,13 +43,15 @@ func TestStartFitbitOauthFlowInvalidSlackSignature(t *testing.T) {
 
 	sc, err := New("https://localhost", "roger", "fitbitClientID", "fitbitClientSecret", "slackClientID", "slackClientSecret", OptionTeamRouter(teamRouter), OptionSlackVerifier("1e13414e22545115a2c62c3b8cd67dfe"), OptionStorer(storer), OptionTaskScheduler(taskScheduler))
 	require.NoError(t, err)
-	sc.StartFitbitOauthFlow(w, r)
+	err = sc.StartFitbitOauthFlow(w, r)
 
-	resp := w.Result()
-	rbody, _ := ioutil.ReadAll(resp.Body)
+	require.Error(t, err)
+	require.IsType(t, new(httpError), err)
 
-	assert.Equal(t, http.StatusForbidden, resp.StatusCode)
-	assert.Equal(t, "Error creating slack secrets verifier: timestamp is too old\n", string(rbody))
+	herr := err.(*httpError)
+	assert.EqualError(t, herr.err, "Error creating slack secrets verifier: timestamp is too old")
+	assert.Equal(t, "Error validating request", herr.message)
+	assert.Equal(t, http.StatusForbidden, herr.code)
 }
 
 func TestStartFitbitOauthFlowInvalidSlackRequest(t *testing.T) {
@@ -83,13 +86,15 @@ func TestStartFitbitOauthFlowInvalidSlackRequest(t *testing.T) {
 
 	sc, err := New("https://localhost", "roger", "fitbitClientID", "fitbitClientSecret", "slackClientID", "slackClientSecret", OptionTeamRouter(teamRouter), OptionVerifier(verifier), OptionStorer(storer), OptionTaskScheduler(taskScheduler))
 	require.NoError(t, err)
-	sc.StartFitbitOauthFlow(w, r)
+	err = sc.StartFitbitOauthFlow(w, r)
 
-	resp := w.Result()
-	rbody, _ := ioutil.ReadAll(resp.Body)
+	require.Error(t, err)
+	require.IsType(t, new(httpError), err)
 
-	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
-	assert.Equal(t, "Error decoding params from body [%gh&%ij]: invalid URL escape \"%gh\"\n", string(rbody))
+	herr := err.(*httpError)
+	assert.EqualError(t, herr.err, "Error decoding params from body [%gh&%ij]: invalid URL escape \"%gh\"")
+	assert.Equal(t, "Error parsing slack request", herr.message)
+	assert.Equal(t, http.StatusBadRequest, herr.code)
 }
 
 func TestStartFitbitOauthFlowErrorSavingCsrfToken(t *testing.T) {
@@ -127,13 +132,16 @@ func TestStartFitbitOauthFlowErrorSavingCsrfToken(t *testing.T) {
 
 	sc, err := New("https://localhost", "roger", "fitbitClientID", "fitbitClientSecret", "slackClientID", "slackClientSecret", OptionTeamRouter(teamRouter), OptionVerifier(verifier), OptionStorer(storer), OptionTaskScheduler(taskScheduler))
 	require.NoError(t, err)
-	sc.StartFitbitOauthFlow(w, r)
 
-	resp := w.Result()
-	rbody, _ := ioutil.ReadAll(resp.Body)
+	err = sc.StartFitbitOauthFlow(w, r)
 
-	assert.Equal(t, http.StatusInternalServerError, resp.StatusCode)
-	assert.Equal(t, "failed to persist\n", string(rbody))
+	require.Error(t, err)
+	require.IsType(t, new(httpError), err)
+
+	herr := err.(*httpError)
+	assert.EqualError(t, herr.err, "failed to persist")
+	assert.Equal(t, "Error persisting csrf token for user [frans]", herr.message)
+	assert.Equal(t, http.StatusInternalServerError, herr.code)
 }
 
 func TestStartFitbitOauthFlowErrorSendingSlackMessage(t *testing.T) {
@@ -177,13 +185,10 @@ func TestStartFitbitOauthFlowErrorSendingSlackMessage(t *testing.T) {
 
 	sc, err := New("https://localhost", "roger", "fitbitClientID", "fitbitClientSecret", "slackClientID", "slackClientSecret", OptionTeamRouter(teamRouter), OptionVerifier(verifier), OptionStorer(storer), OptionTaskScheduler(taskScheduler))
 	require.NoError(t, err)
-	sc.StartFitbitOauthFlow(w, r)
 
-	resp := w.Result()
-	rbody, _ := ioutil.ReadAll(resp.Body)
+	err = sc.StartFitbitOauthFlow(w, r)
 
-	assert.Equal(t, http.StatusInternalServerError, resp.StatusCode)
-	assert.Equal(t, "wut\n", string(rbody))
+	assert.Equal(t, newHttpError(errors.New("Error writing message with error [wut]"), "", http.StatusInternalServerError), err)
 }
 
 func TestStartFitbitOauthFlow(t *testing.T) {

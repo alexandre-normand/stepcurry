@@ -60,23 +60,23 @@ func inferBaseURL(projectID string, region string) (baseURL string) {
 }
 
 func LinkAccount(w http.ResponseWriter, r *http.Request) {
-	sc.StartFitbitOauthFlow(w, r)
+	stepcurry.Handler(sc.StartFitbitOauthFlow).ServeHTTP(w, r)
 }
 
 func Challenge(w http.ResponseWriter, r *http.Request) {
-	sc.Challenge(w, r)
+	stepcurry.Handler(sc.Challenge).ServeHTTP(w, r)
 }
 
 func UpdateChallenge(w http.ResponseWriter, r *http.Request) {
-	sc.UpdateChallenge(w, r)
+	stepcurry.Handler(sc.UpdateChallenge).ServeHTTP(w, r)
 }
 
 func HandleFitbitAuth(w http.ResponseWriter, r *http.Request) {
-	sc.HandleFitbitAuth(w, r)
+	stepcurry.Handler(sc.HandleFitbitAuth).ServeHTTP(w, r)
 }
 
 func Standings(w http.ResponseWriter, r *http.Request) {
-	sc.Standings(w, r)
+	stepcurry.Handler(sc.Standings).ServeHTTP(w, r)
 }
 
 func InvokeSlackAuth(w http.ResponseWriter, r *http.Request) {
@@ -84,5 +84,5 @@ func InvokeSlackAuth(w http.ResponseWriter, r *http.Request) {
 }
 
 func HandleSlackAuth(w http.ResponseWriter, r *http.Request) {
-	sc.HandleSlackAuth(w, r)
+	stepcurry.Handler(sc.HandleSlackAuth).ServeHTTP(w, r)
 }
