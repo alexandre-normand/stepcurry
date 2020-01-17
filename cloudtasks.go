@@ -82,7 +82,7 @@ func (sc *StepCurry) scheduleChallengeUpdate(challengeID ChallengeID, scheduledT
 			PayloadType: &taskspb.Task_HttpRequest{
 				HttpRequest: &taskspb.HttpRequest{
 					HttpMethod: taskspb.HttpMethod_POST,
-					Url:        fmt.Sprintf("%s/%s", sc.baseURL, updateChallengePath),
+					Url:        fmt.Sprintf("%s/%s", sc.baseURL, sc.paths.UpdateChallenge),
 				},
 			},
 			ScheduleTime: &scheduledTimestamp,
