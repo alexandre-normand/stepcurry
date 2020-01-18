@@ -132,10 +132,10 @@ type Messenger interface {
 	PostMessage(channelID string, options ...slack.MsgOption) (channel string, timestamp string, err error)
 }
 
-// ChannelInfoFinder defines the interface for finding channel info
-type ChannelInfoFinder interface {
-	// GetChannelInfo fetches info on a channel. See https://godoc.org/github.com/nlopes/slack#Client.GetChannelInfo for more details
-	GetChannelInfo(channelID string) (channel *slack.Channel, err error)
+// ConversationMemberFinder defines the interface for finding members on a conversation
+type ConversationMemberFinder interface {
+	// GetUsersInConversation fetches members of a conversation. See https://godoc.org/github.com/nlopes/slack#Client.GetUsersInConversation for more details
+	GetUsersInConversation(params *slack.GetUsersInConversationParameters) (members []string, cursor string, err error)
 }
 
 // OptionTaskScheduler sets a taskScheduler as the implementation on StepCurry
@@ -156,10 +156,10 @@ func OptionTeamRouter(teamRouter TeamRouter) Option {
 
 // TeamServices holds references to tenanted services
 type TeamServices struct {
-	userInfoFinder    UserInfoFinder
-	botIdentificator  BotIdentificator
-	messenger         Messenger
-	channelInfoFinder ChannelInfoFinder
+	userInfoFinder           UserInfoFinder
+	botIdentificator         BotIdentificator
+	messenger                Messenger
+	conversationMemberFinder ConversationMemberFinder
 }
 
 // TeamRouter defines the interface for routing to various tenanted services on team ID
@@ -179,9 +179,9 @@ func (stRouter *SingleTenantRouter) Route(teamID string) (svcs TeamServices, err
 	return stRouter.services, nil
 }
 
-func NewSingleTenantRouter(userInfoFinder UserInfoFinder, botIdentificator BotIdentificator, messenger Messenger, channelInfoFinder ChannelInfoFinder) (stRouter *SingleTenantRouter, err error) {
+func NewSingleTenantRouter(userInfoFinder UserInfoFinder, botIdentificator BotIdentificator, messenger Messenger, conversationMemberFinder ConversationMemberFinder) (stRouter *SingleTenantRouter, err error) {
 	stRouter = new(SingleTenantRouter)
-	stRouter.services = TeamServices{userInfoFinder: userInfoFinder, botIdentificator: botIdentificator, messenger: messenger, channelInfoFinder: channelInfoFinder}
+	stRouter.services = TeamServices{userInfoFinder: userInfoFinder, botIdentificator: botIdentificator, messenger: messenger, conversationMemberFinder: conversationMemberFinder}
 
 	return stRouter, nil
 }
@@ -213,7 +213,7 @@ func (mtRouter *MultiTenantRouter) Route(teamID string) (svcs TeamServices, err 
 
 		slackClient := slack.New(token, slack.OptionDebug(mtRouter.debug))
 
-		teamSvcs := TeamServices{userInfoFinder: slackClient, botIdentificator: FixedBotIdentificator{botUserID: botInfo.UserID}, messenger: slackClient, channelInfoFinder: slackClient}
+		teamSvcs := TeamServices{userInfoFinder: slackClient, botIdentificator: FixedBotIdentificator{botUserID: botInfo.UserID}, messenger: slackClient, conversationMemberFinder: slackClient}
 		mtRouter.svcsByTeam[teamID] = teamSvcs
 	}
 

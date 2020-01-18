@@ -24,8 +24,8 @@ func TestNewStepCurry(t *testing.T) {
 	userInfoFinder := &mocks.UserInfoFinder{}
 	defer userInfoFinder.AssertExpectations(t)
 
-	channelInfoFinder := &mocks.ChannelInfoFinder{}
-	defer channelInfoFinder.AssertExpectations(t)
+	conversationMemberFinder := &mocks.ConversationMemberFinder{}
+	defer conversationMemberFinder.AssertExpectations(t)
 
 	teamRouter := &SingleTenantRouter{}
 

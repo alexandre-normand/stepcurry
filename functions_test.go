@@ -35,10 +35,10 @@ func TestStartFitbitOauthFlowInvalidSlackSignature(t *testing.T) {
 	userInfoFinder := &mocks.UserInfoFinder{}
 	defer userInfoFinder.AssertExpectations(t)
 
-	channelInfoFinder := &mocks.ChannelInfoFinder{}
-	defer channelInfoFinder.AssertExpectations(t)
+	conversationMemberFinder := &mocks.ConversationMemberFinder{}
+	defer conversationMemberFinder.AssertExpectations(t)
 
-	teamRouter, err := NewSingleTenantRouter(userInfoFinder, nil, messenger, channelInfoFinder)
+	teamRouter, err := NewSingleTenantRouter(userInfoFinder, nil, messenger, conversationMemberFinder)
 	require.NoError(t, err)
 
 	sc, err := New("https://localhost", "roger", "fitbitClientID", "fitbitClientSecret", "slackClientID", "slackClientSecret", OptionTeamRouter(teamRouter), OptionSlackVerifier("1e13414e22545115a2c62c3b8cd67dfe"), OptionStorer(storer), OptionTaskScheduler(taskScheduler))
@@ -78,10 +78,10 @@ func TestStartFitbitOauthFlowInvalidSlackRequest(t *testing.T) {
 	userInfoFinder := &mocks.UserInfoFinder{}
 	defer userInfoFinder.AssertExpectations(t)
 
-	channelInfoFinder := &mocks.ChannelInfoFinder{}
-	defer channelInfoFinder.AssertExpectations(t)
+	conversationMemberFinder := &mocks.ConversationMemberFinder{}
+	defer conversationMemberFinder.AssertExpectations(t)
 
-	teamRouter, err := NewSingleTenantRouter(userInfoFinder, nil, messenger, channelInfoFinder)
+	teamRouter, err := NewSingleTenantRouter(userInfoFinder, nil, messenger, conversationMemberFinder)
 	require.NoError(t, err)
 
 	sc, err := New("https://localhost", "roger", "fitbitClientID", "fitbitClientSecret", "slackClientID", "slackClientSecret", OptionTeamRouter(teamRouter), OptionVerifier(verifier), OptionStorer(storer), OptionTaskScheduler(taskScheduler))
@@ -124,10 +124,10 @@ func TestStartFitbitOauthFlowErrorSavingCsrfToken(t *testing.T) {
 	userInfoFinder := &mocks.UserInfoFinder{}
 	defer userInfoFinder.AssertExpectations(t)
 
-	channelInfoFinder := &mocks.ChannelInfoFinder{}
-	defer channelInfoFinder.AssertExpectations(t)
+	conversationMemberFinder := &mocks.ConversationMemberFinder{}
+	defer conversationMemberFinder.AssertExpectations(t)
 
-	teamRouter, err := NewSingleTenantRouter(userInfoFinder, nil, messenger, channelInfoFinder)
+	teamRouter, err := NewSingleTenantRouter(userInfoFinder, nil, messenger, conversationMemberFinder)
 	require.NoError(t, err)
 
 	sc, err := New("https://localhost", "roger", "fitbitClientID", "fitbitClientSecret", "slackClientID", "slackClientSecret", OptionTeamRouter(teamRouter), OptionVerifier(verifier), OptionStorer(storer), OptionTaskScheduler(taskScheduler))
@@ -177,10 +177,10 @@ func TestStartFitbitOauthFlowErrorSendingSlackMessage(t *testing.T) {
 	userInfoFinder := &mocks.UserInfoFinder{}
 	defer userInfoFinder.AssertExpectations(t)
 
-	channelInfoFinder := &mocks.ChannelInfoFinder{}
-	defer channelInfoFinder.AssertExpectations(t)
+	conversationMemberFinder := &mocks.ConversationMemberFinder{}
+	defer conversationMemberFinder.AssertExpectations(t)
 
-	teamRouter, err := NewSingleTenantRouter(userInfoFinder, nil, messenger, channelInfoFinder)
+	teamRouter, err := NewSingleTenantRouter(userInfoFinder, nil, messenger, conversationMemberFinder)
 	require.NoError(t, err)
 
 	sc, err := New("https://localhost", "roger", "fitbitClientID", "fitbitClientSecret", "slackClientID", "slackClientSecret", OptionTeamRouter(teamRouter), OptionVerifier(verifier), OptionStorer(storer), OptionTaskScheduler(taskScheduler))
@@ -226,10 +226,10 @@ func TestStartFitbitOauthFlow(t *testing.T) {
 	userInfoFinder := &mocks.UserInfoFinder{}
 	defer userInfoFinder.AssertExpectations(t)
 
-	channelInfoFinder := &mocks.ChannelInfoFinder{}
-	defer channelInfoFinder.AssertExpectations(t)
+	conversationMemberFinder := &mocks.ConversationMemberFinder{}
+	defer conversationMemberFinder.AssertExpectations(t)
 
-	teamRouter, err := NewSingleTenantRouter(userInfoFinder, nil, messenger, channelInfoFinder)
+	teamRouter, err := NewSingleTenantRouter(userInfoFinder, nil, messenger, conversationMemberFinder)
 	require.NoError(t, err)
 
 	sc, err := New("https://localhost", "roger", "fitbitClientID", "fitbitClientSecret", "slackClientID", "slackClientSecret", OptionTeamRouter(teamRouter), OptionVerifier(verifier), OptionStorer(storer), OptionTaskScheduler(taskScheduler))
