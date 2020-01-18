@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/imroc/req"
+	"github.com/nlopes/slack"
 	"github.com/pkg/errors"
 	"google.golang.org/api/iterator"
 	"io/ioutil"
@@ -243,13 +244,13 @@ func (sc *StepCurry) getChallengeRankedSteps(stepsChallenge StepsChallenge) (ran
 		return userSteps, errors.Wrapf(err, "error getting channel members for channel id [%s]", stepsChallenge.ChannelID)
 	}
 
-	ch, err := svcs.channelInfoFinder.GetChannelInfo(stepsChallenge.ChannelID)
+	members, _, err := svcs.conversationMemberFinder.GetUsersInConversation(&slack.GetUsersInConversationParameters{ChannelID: stepsChallenge.ChannelID, Limit: 100000})
 	if err != nil {
 		return userSteps, errors.Wrapf(err, "error getting channel members for channel id [%s]", stepsChallenge.ChannelID)
 	}
 
 	usersToFetch := make([]string, 0)
-	for _, userID := range ch.Members {
+	for _, userID := range members {
 		if _, ok := fitbitUsers[userID]; ok {
 			usersToFetch = append(usersToFetch, userID)
 		}

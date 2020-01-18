@@ -32,10 +32,10 @@ func TestScheduleChallengeUpdate(t *testing.T) {
 	userInfoFinder := &mocks.UserInfoFinder{}
 	defer userInfoFinder.AssertExpectations(t)
 
-	channelInfoFinder := &mocks.ChannelInfoFinder{}
-	defer channelInfoFinder.AssertExpectations(t)
+	conversationMemberFinder := &mocks.ConversationMemberFinder{}
+	defer conversationMemberFinder.AssertExpectations(t)
 
-	teamRouter, err := NewSingleTenantRouter(userInfoFinder, nil, messenger, channelInfoFinder)
+	teamRouter, err := NewSingleTenantRouter(userInfoFinder, nil, messenger, conversationMemberFinder)
 	require.NoError(t, err)
 
 	sc, err := New("https://stepcurry.com", "roger", "fitbitClientID", "fitbitClientSecret", "slackClientID", "slackClientSecret", OptionTeamRouter(teamRouter), OptionStorer(storer), OptionVerifier(verifier), OptionTaskScheduler(taskScheduler))
@@ -66,9 +66,9 @@ func TestScheduleChallengeUpdateErrorOnCreateTask(t *testing.T) {
 	userInfoFinder := &mocks.UserInfoFinder{}
 	defer userInfoFinder.AssertExpectations(t)
 
-	channelInfoFinder := &mocks.ChannelInfoFinder{}
-	defer channelInfoFinder.AssertExpectations(t)
-	teamRouter, err := NewSingleTenantRouter(userInfoFinder, nil, messenger, channelInfoFinder)
+	conversationMemberFinder := &mocks.ConversationMemberFinder{}
+	defer conversationMemberFinder.AssertExpectations(t)
+	teamRouter, err := NewSingleTenantRouter(userInfoFinder, nil, messenger, conversationMemberFinder)
 	require.NoError(t, err)
 
 	sc, err := New("https://stepcurry.com", "roger", "fitbitClientID", "fitbitClientSecret", "slackClientID", "slackClientSecret", OptionTeamRouter(teamRouter), OptionStorer(storer), OptionVerifier(verifier), OptionTaskScheduler(taskScheduler))

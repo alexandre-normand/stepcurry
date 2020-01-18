@@ -64,10 +64,10 @@ func TestHandleFitbitAuthCallbackUrlParsing(t *testing.T) {
 	userInfoFinder := &mocks.UserInfoFinder{}
 	defer userInfoFinder.AssertExpectations(t)
 
-	channelInfoFinder := &mocks.ChannelInfoFinder{}
-	defer channelInfoFinder.AssertExpectations(t)
+	conversationMemberFinder := &mocks.ConversationMemberFinder{}
+	defer conversationMemberFinder.AssertExpectations(t)
 
-	teamRouter, err := NewSingleTenantRouter(userInfoFinder, nil, messenger, channelInfoFinder)
+	teamRouter, err := NewSingleTenantRouter(userInfoFinder, nil, messenger, conversationMemberFinder)
 	require.NoError(t, err)
 
 	sc, err := New("https://localhost", "roger", "fitbitClientID", "fitbitClientSecret", "slackClientID", "slackClientSecret", OptionTeamRouter(teamRouter), OptionVerifier(verifier), OptionStorer(storer), OptionTaskScheduler(taskScheduler))
@@ -115,10 +115,10 @@ func TestHandleFitbitAuthCallbackWithErrorLoadingCsrfToken(t *testing.T) {
 	userInfoFinder := &mocks.UserInfoFinder{}
 	defer userInfoFinder.AssertExpectations(t)
 
-	channelInfoFinder := &mocks.ChannelInfoFinder{}
-	defer channelInfoFinder.AssertExpectations(t)
+	conversationMemberFinder := &mocks.ConversationMemberFinder{}
+	defer conversationMemberFinder.AssertExpectations(t)
 
-	teamRouter, err := NewSingleTenantRouter(userInfoFinder, nil, messenger, channelInfoFinder)
+	teamRouter, err := NewSingleTenantRouter(userInfoFinder, nil, messenger, conversationMemberFinder)
 	require.NoError(t, err)
 
 	sc, err := New("https://localhost", "roger", "fitbitClientID", "fitbitClientSecret", "slackClientID", "slackClientSecret", OptionTeamRouter(teamRouter), OptionVerifier(verifier), OptionStorer(storer), OptionTaskScheduler(taskScheduler))
@@ -159,10 +159,10 @@ func TestHandleFitbitAuthCallbackWithMissingCsrfToken(t *testing.T) {
 	userInfoFinder := &mocks.UserInfoFinder{}
 	defer userInfoFinder.AssertExpectations(t)
 
-	channelInfoFinder := &mocks.ChannelInfoFinder{}
-	defer channelInfoFinder.AssertExpectations(t)
+	conversationMemberFinder := &mocks.ConversationMemberFinder{}
+	defer conversationMemberFinder.AssertExpectations(t)
 
-	teamRouter, err := NewSingleTenantRouter(userInfoFinder, nil, messenger, channelInfoFinder)
+	teamRouter, err := NewSingleTenantRouter(userInfoFinder, nil, messenger, conversationMemberFinder)
 	require.NoError(t, err)
 
 	sc, err := New("https://localhost", "roger", "fitbitClientID", "fitbitClientSecret", "slackClientID", "slackClientSecret", OptionTeamRouter(teamRouter), OptionVerifier(verifier), OptionStorer(storer), OptionTaskScheduler(taskScheduler))
@@ -205,10 +205,10 @@ func TestHandleFitbitAuthCallbackWithUnexpectedCsrfToken(t *testing.T) {
 	userInfoFinder := &mocks.UserInfoFinder{}
 	defer userInfoFinder.AssertExpectations(t)
 
-	channelInfoFinder := &mocks.ChannelInfoFinder{}
-	defer channelInfoFinder.AssertExpectations(t)
+	conversationMemberFinder := &mocks.ConversationMemberFinder{}
+	defer conversationMemberFinder.AssertExpectations(t)
 
-	teamRouter, err := NewSingleTenantRouter(userInfoFinder, nil, messenger, channelInfoFinder)
+	teamRouter, err := NewSingleTenantRouter(userInfoFinder, nil, messenger, conversationMemberFinder)
 	require.NoError(t, err)
 
 	sc, err := New("https://localhost", "roger", "fitbitClientID", "fitbitClientSecret", "slackClientID", "slackClientSecret", OptionTeamRouter(teamRouter), OptionVerifier(verifier), OptionStorer(storer), OptionTaskScheduler(taskScheduler))
@@ -255,10 +255,10 @@ func TestHandleFitbitAuthCallbackWithErrorDeletingToken(t *testing.T) {
 	userInfoFinder := &mocks.UserInfoFinder{}
 	defer userInfoFinder.AssertExpectations(t)
 
-	channelInfoFinder := &mocks.ChannelInfoFinder{}
-	defer channelInfoFinder.AssertExpectations(t)
+	conversationMemberFinder := &mocks.ConversationMemberFinder{}
+	defer conversationMemberFinder.AssertExpectations(t)
 
-	teamRouter, err := NewSingleTenantRouter(userInfoFinder, nil, messenger, channelInfoFinder)
+	teamRouter, err := NewSingleTenantRouter(userInfoFinder, nil, messenger, conversationMemberFinder)
 	require.NoError(t, err)
 
 	sc, err := New("https://localhost", "roger", "fitbitClientID", "fitbitClientSecret", "slackClientID", "slackClientSecret", OptionTeamRouter(teamRouter), OptionVerifier(verifier), OptionStorer(storer), OptionTaskScheduler(taskScheduler))
@@ -313,10 +313,10 @@ func TestHandleFitbitAuthCallbackWithErrorExchangingCodeForToken(t *testing.T) {
 	userInfoFinder := &mocks.UserInfoFinder{}
 	defer userInfoFinder.AssertExpectations(t)
 
-	channelInfoFinder := &mocks.ChannelInfoFinder{}
-	defer channelInfoFinder.AssertExpectations(t)
+	conversationMemberFinder := &mocks.ConversationMemberFinder{}
+	defer conversationMemberFinder.AssertExpectations(t)
 
-	teamRouter, err := NewSingleTenantRouter(userInfoFinder, nil, messenger, channelInfoFinder)
+	teamRouter, err := NewSingleTenantRouter(userInfoFinder, nil, messenger, conversationMemberFinder)
 	require.NoError(t, err)
 
 	sc, err := New("https://localhost", "roger", "fitbitClientID", "fitbitClientSecret", "slackClientID", "slackClientSecret", OptionTeamRouter(teamRouter), OptionFitbitURLs(server.URL, server.URL), OptionVerifier(verifier), OptionStorer(storer), OptionTaskScheduler(taskScheduler))
@@ -371,10 +371,10 @@ func TestHandleFitbitAuthCallbackWithInvalidTokenResponse(t *testing.T) {
 	userInfoFinder := &mocks.UserInfoFinder{}
 	defer userInfoFinder.AssertExpectations(t)
 
-	channelInfoFinder := &mocks.ChannelInfoFinder{}
-	defer channelInfoFinder.AssertExpectations(t)
+	conversationMemberFinder := &mocks.ConversationMemberFinder{}
+	defer conversationMemberFinder.AssertExpectations(t)
 
-	teamRouter, err := NewSingleTenantRouter(userInfoFinder, nil, messenger, channelInfoFinder)
+	teamRouter, err := NewSingleTenantRouter(userInfoFinder, nil, messenger, conversationMemberFinder)
 	require.NoError(t, err)
 
 	sc, err := New("https://localhost", "roger", "fitbitClientID", "fitbitClientSecret", "slackClientID", "slackClientSecret", OptionTeamRouter(teamRouter), OptionFitbitURLs(server.URL, server.URL), OptionVerifier(verifier), OptionStorer(storer), OptionTaskScheduler(taskScheduler))
@@ -435,10 +435,10 @@ func TestHandleFitbitAuthCallbackWithErrorPersistingClientAccess(t *testing.T) {
 	userInfoFinder := &mocks.UserInfoFinder{}
 	defer userInfoFinder.AssertExpectations(t)
 
-	channelInfoFinder := &mocks.ChannelInfoFinder{}
-	defer channelInfoFinder.AssertExpectations(t)
+	conversationMemberFinder := &mocks.ConversationMemberFinder{}
+	defer conversationMemberFinder.AssertExpectations(t)
 
-	teamRouter, err := NewSingleTenantRouter(userInfoFinder, nil, messenger, channelInfoFinder)
+	teamRouter, err := NewSingleTenantRouter(userInfoFinder, nil, messenger, conversationMemberFinder)
 	require.NoError(t, err)
 
 	sc, err := New("https://localhost", "roger", "fitbitClientID", "fitbitClientSecret", "slackClientID", "slackClientSecret", OptionTeamRouter(teamRouter), OptionFitbitURLs(server.URL, server.URL), OptionVerifier(verifier), OptionStorer(storer), OptionTaskScheduler(taskScheduler))
@@ -507,10 +507,10 @@ func TestHandleFitbitAuthCallbackWithErrorSendingResultMessage(t *testing.T) {
 	userInfoFinder := &mocks.UserInfoFinder{}
 	defer userInfoFinder.AssertExpectations(t)
 
-	channelInfoFinder := &mocks.ChannelInfoFinder{}
-	defer channelInfoFinder.AssertExpectations(t)
+	conversationMemberFinder := &mocks.ConversationMemberFinder{}
+	defer conversationMemberFinder.AssertExpectations(t)
 
-	teamRouter, err := NewSingleTenantRouter(userInfoFinder, nil, messenger, channelInfoFinder)
+	teamRouter, err := NewSingleTenantRouter(userInfoFinder, nil, messenger, conversationMemberFinder)
 	require.NoError(t, err)
 
 	sc, err := New("https://localhost", "roger", "fitbitClientID", "fitbitClientSecret", "slackClientID", "slackClientSecret", OptionTeamRouter(teamRouter), OptionFitbitURLs(server.URL, server.URL), OptionVerifier(verifier), OptionStorer(storer), OptionTaskScheduler(taskScheduler))
@@ -579,10 +579,10 @@ func TestHandleFitbitAuthCallback(t *testing.T) {
 	userInfoFinder := &mocks.UserInfoFinder{}
 	defer userInfoFinder.AssertExpectations(t)
 
-	channelInfoFinder := &mocks.ChannelInfoFinder{}
-	defer channelInfoFinder.AssertExpectations(t)
+	conversationMemberFinder := &mocks.ConversationMemberFinder{}
+	defer conversationMemberFinder.AssertExpectations(t)
 
-	teamRouter, err := NewSingleTenantRouter(userInfoFinder, nil, messenger, channelInfoFinder)
+	teamRouter, err := NewSingleTenantRouter(userInfoFinder, nil, messenger, conversationMemberFinder)
 	require.NoError(t, err)
 
 	sc, err := New("https://localhost", "roger", "fitbitClientID", "fitbitClientSecret", "slackClientID", "slackClientSecret", OptionTeamRouter(teamRouter), OptionFitbitURLs(server.URL, server.URL), OptionVerifier(verifier), OptionStorer(storer), OptionTaskScheduler(taskScheduler))
