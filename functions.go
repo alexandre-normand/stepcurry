@@ -397,18 +397,16 @@ func (sc *StepCurry) renderStepsRanking(services TeamServices, rankedUsers []Use
 		userInfo, err := services.userInfoFinder.GetUserInfo(us.UserID)
 		profileImage := ""
 		realName := ""
-		displayName := ""
 		if err != nil {
 			log.Printf("Error getting user info for [%s]: [%s]", us.UserID, err.Error())
 		} else {
 			profileImage = userInfo.Profile.Image32
 			realName = userInfo.Profile.RealName
-			displayName = userInfo.Profile.DisplayNameNormalized
 		}
 
-		rankingText := fmt.Sprintf("_%s_ `%d` :athletic_shoe:", displayName, us.Steps)
+		rankingText := fmt.Sprintf("_%s_ `%d` :athletic_shoe:", realName, us.Steps)
 		if rank == 1 {
-			rankingText = fmt.Sprintf("_%s_ `%d` :athletic_shoe: :tornado::rocket:", displayName, us.Steps)
+			rankingText = fmt.Sprintf("_%s_ `%d` :athletic_shoe: :tornado::rocket:", realName, us.Steps)
 		}
 
 		renderBlocks = append(renderBlocks, slack.NewContextBlock("", slack.NewImageBlockElement(profileImage, realName), slack.NewTextBlockObject("mrkdwn", rankingText, false, false)))
