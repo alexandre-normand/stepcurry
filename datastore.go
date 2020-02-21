@@ -96,6 +96,7 @@ func (ds *gcdatastore) Delete(c context.Context, k *datastore.Key) (err error) {
 }
 
 func (ds *gcdatastore) tryWithRecovery(operation retryableOperation) (err error) {
+	err = operation()
 	for attempt := 1; attempt < maxAttemptCount && err != nil && shouldRetry(err); attempt = attempt + 1 {
 		ds.Connect()
 
@@ -106,6 +107,7 @@ func (ds *gcdatastore) tryWithRecovery(operation retryableOperation) (err error)
 }
 
 func (ds *gcdatastore) tryKeyOperationWithRecovery(operation retryableOperationWithkey) (key *datastore.Key, err error) {
+	key, err = operation()
 	for attempt := 1; attempt < maxAttemptCount && err != nil && shouldRetry(err); attempt = attempt + 1 {
 		ds.Connect()
 
