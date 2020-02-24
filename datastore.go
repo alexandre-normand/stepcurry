@@ -28,7 +28,7 @@ type gcdatastore struct {
 
 type retryableOperation func() (err error)
 
-type retryableOperationWithkey func() (key *datastore.Key, err error)
+type retryableOperationWithKey func() (key *datastore.Key, err error)
 
 // NewDatastorer creates a new instance of a DataStorer backed by a real datastore client
 func NewDatastorer(gcloudProjectID string, gcloudOpts ...option.ClientOption) (ds *gcdatastore, err error) {
@@ -106,7 +106,7 @@ func (ds *gcdatastore) tryWithRecovery(operation retryableOperation) (err error)
 	return err
 }
 
-func (ds *gcdatastore) tryKeyOperationWithRecovery(operation retryableOperationWithkey) (key *datastore.Key, err error) {
+func (ds *gcdatastore) tryKeyOperationWithRecovery(operation retryableOperationWithKey) (key *datastore.Key, err error) {
 	key, err = operation()
 	for attempt := 1; attempt < maxAttemptCount && err != nil && shouldRetry(err); attempt = attempt + 1 {
 		ds.Connect()

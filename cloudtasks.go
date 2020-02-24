@@ -33,6 +33,27 @@ type cloudTaskClient struct {
 	gcloudClientOpts []option.ClientOption
 }
 
+type retryableOperationWithTask func() (task *taskspb.Task, err error)
+
+func (ctc *cloudTaskClient) tryTaskOperationWithRecovery(operation retryableOperationWithTask) (task *taskspb.Task, err error) {
+	task, err = operation()
+	for attempt := 1; attempt < maxAttemptCount && err != nil && shouldRetryTaskOperation(err); attempt = attempt + 1 {
+		err = ctc.Connect()
+		if err == nil {
+			task, err = operation()
+		}
+	}
+
+	return task, err
+}
+
+// shouldRetryTaskOperation returns true if the given task API error should be retried or false if not.
+// What's done here is to be a little conservative and retry on everything.
+// This means we could still retry when it's pointless to do so at the expense of added latency.
+func shouldRetryTaskOperation(err error) bool {
+	return true
+}
+
 // GenerateQueueID generates a queue id from the gcp project, location and queue name
 func (ctc *cloudTaskClient) GenerateQueueID() (queueID string) {
 	return fmt.Sprintf("projects/%s/locations/%s/queues/%s", ctc.gcpProject, ctc.gcpLocation, ctc.taskQueueName)
@@ -51,7 +72,9 @@ func (ctc *cloudTaskClient) Connect() (err error) {
 
 // CreateTask creates a task via a real cloudtasks Client
 func (ctc *cloudTaskClient) CreateTask(ctx context.Context, req *taskspb.CreateTaskRequest, opts ...gax.CallOption) (task *taskspb.Task, err error) {
-	return ctc.client.CreateTask(ctx, req, opts...)
+	return ctc.tryTaskOperationWithRecovery(func() (task *taskspb.Task, err error) {
+		return ctc.client.CreateTask(ctx, req, opts...)
+	})
 }
 
 // NewTaskScheduler creates a new instance of a TaskScheduler backed by the real cloudtasks Client
