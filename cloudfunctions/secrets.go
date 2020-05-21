@@ -4,10 +4,11 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	"google.golang.org/api/googleapi"
-	secretmanager "google.golang.org/api/secretmanager/v1beta1"
 	"net/http"
 	"strings"
+
+	"google.golang.org/api/googleapi"
+	secretmanager "google.golang.org/api/secretmanager/v1"
 )
 
 // Secret names
