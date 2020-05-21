@@ -22,10 +22,12 @@ const (
 	fitbitClientSecretKey = "fitbitClientSecret"
 )
 
+// MultiTenantTokenManager holds data for a MultiTenantTokenManager
 type MultiTenantTokenManager struct {
 	projectID string
 }
 
+// NewMultiTenantTokenManager creates a new instance of MultiTenantTokenManager
 func NewMultiTenantTokenManager(projectID string) (mtTokenManager *MultiTenantTokenManager) {
 	mtTokenManager = new(MultiTenantTokenManager)
 	mtTokenManager.projectID = projectID
@@ -33,6 +35,7 @@ func NewMultiTenantTokenManager(projectID string) (mtTokenManager *MultiTenantTo
 	return mtTokenManager
 }
 
+// LoadToken loads a team slack token
 func (mtManager *MultiTenantTokenManager) LoadToken(teamID string) (token string, err error) {
 	ctx := context.Background()
 	ss, err := secretmanager.NewService(ctx)
@@ -50,6 +53,7 @@ func (mtManager *MultiTenantTokenManager) LoadToken(teamID string) (token string
 	return token, nil
 }
 
+// SaveToken saves a team slack token
 func (mtManager *MultiTenantTokenManager) SaveToken(teamID string, token string) (err error) {
 	ctx := context.Background()
 	ss, err := secretmanager.NewService(ctx)
