@@ -12,7 +12,7 @@ import (
 // GCP Environment Variables
 const (
 	projectIDEnv = "PROJECT_ID"
-	regionEnv    = "DEPLOY_REGION"
+	regionEnv    = "REGION"
 	debugEnv     = "DEBUG"
 )
 
