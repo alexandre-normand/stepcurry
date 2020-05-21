@@ -2,16 +2,17 @@ package cloudfunctions
 
 import (
 	"fmt"
-	"github.com/alexandre-normand/stepcurry"
-	"github.com/spf13/cast"
 	"net/http"
 	"os"
+
+	"github.com/alexandre-normand/stepcurry"
+	"github.com/spf13/cast"
 )
 
 // GCP Environment Variables
 const (
-	projectIDEnv = "GCP_PROJECT"
-	regionEnv    = "FUNCTION_REGION"
+	projectIDEnv = "PROJECT_ID"
+	regionEnv    = "DEPLOY_REGION"
 	debugEnv     = "DEBUG"
 )
 
@@ -28,7 +29,7 @@ func init() {
 
 	appID, slackClientID, slackClientSecret, slackSigningSecret, fitbitClientID, fitbitClientSecret, err := loadSecrets(projectID)
 	if err != nil {
-		panic(fmt.Sprintf("Failed to load Roger Challenger secrets: %s", err.Error()))
+		panic(fmt.Sprintf("Failed to load Step Curry secrets: %s", err.Error()))
 	}
 
 	storer, err := stepcurry.NewDatastorer(projectID)
@@ -44,12 +45,12 @@ func init() {
 	tokenManager := NewMultiTenantTokenManager(projectID)
 	router, err := stepcurry.NewMultiTenantRouter(projectID, storer, tokenManager, tokenManager, cast.ToBool(os.Getenv(debugEnv)))
 	if err != nil {
-		panic(fmt.Sprintf("Failed to initialize Roger Challenger: %s", err.Error()))
+		panic(fmt.Sprintf("Failed to initialize Step Curry: %s", err.Error()))
 	}
 
 	step, err := stepcurry.New(inferBaseURL(projectID, region), appID, fitbitClientID, fitbitClientSecret, slackClientID, slackClientSecret, stepcurry.OptionSlackVerifier(slackSigningSecret), stepcurry.OptionStorer(storer), stepcurry.OptionTeamRouter(router), stepcurry.OptionTaskScheduler(taskScheduler))
 	if err != nil {
-		panic(fmt.Sprintf("Failed to initialize Roger Challenger: %s", err.Error()))
+		panic(fmt.Sprintf("Failed to initialize Step Curry: %s", err.Error()))
 	}
 
 	sc = step

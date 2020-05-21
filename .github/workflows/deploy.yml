@@ -8,7 +8,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
-    steps:        
+    steps:
       - name: Check out code into the Go module directory
         uses: actions/checkout@v1
         with:
@@ -29,8 +29,8 @@ jobs:
       - name: Setup gcloud tools
         uses: GoogleCloudPlatform/github-actions/setup-gcloud@master
         with:
-          version: '270.0.0'          
+          version: '270.0.0'
           service_account_key: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}
-      
+
       - name: Deploy functions
-        run: cd $GITHUB_WORKSPACE/cloudfunctions && ${GITHUB_WORKSPACE}/bin/landler | xargs -I % gcloud --project stepcurry functions deploy % --runtime go113 --trigger-http --allow-unauthenticated
+        run: cd $GITHUB_WORKSPACE/cloudfunctions && ${GITHUB_WORKSPACE}/bin/landler | xargs -I % gcloud --project stepcurry functions deploy % --runtime go113 --trigger-http --allow-unauthenticated --env-vars-file=./env.yml
