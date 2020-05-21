@@ -12,6 +12,7 @@ require (
 	github.com/pkg/errors v0.8.1
 	github.com/spf13/cast v1.3.0
 	github.com/stretchr/testify v1.4.0
+	go.opentelemetry.io/otel v0.2.3
 	google.golang.org/api v0.14.1-0.20191213000642-8b4e46d953bd
 	google.golang.org/genproto v0.0.0-20191206224255-0243a4be9c8f
 )

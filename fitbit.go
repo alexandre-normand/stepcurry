@@ -137,6 +137,8 @@ func (sc *StepCurry) HandleFitbitAuth(w http.ResponseWriter, r *http.Request) er
 		return newHttpError(err, fmt.Sprintf("Error persisting fitbit user mapping for user [%s]", authIDState.SlackUser), http.StatusInternalServerError)
 	}
 
+	sc.instruments.accountLinkCompletedCount.Add(context.Background(), 1)
+
 	oauthCompleteMessage := ActionResponse{ResponseType: "ephemeral", ReplaceOriginal: false, Text: "POW :boom: You've got your Fitbit account linked and ready for some challenges :wind_blowing_face::athletic_shoe:"}
 	resp, err := req.Post(authIDState.ResponseURL, req.BodyJSON(&oauthCompleteMessage))
 	if err != nil || resp.Response().StatusCode != 200 {
