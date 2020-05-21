@@ -5,7 +5,14 @@ import (
 	"fmt"
 	"github.com/nlopes/slack"
 	"github.com/pkg/errors"
+	opentelemetry "go.opentelemetry.io/otel/api/global"
+	"go.opentelemetry.io/otel/api/key"
+	"go.opentelemetry.io/otel/api/metric"
 	"net/http"
+)
+
+const (
+	appName = "step-curry"
 )
 
 // StepCurry holds state and dependencies for a server instance
@@ -25,6 +32,8 @@ type StepCurry struct {
 	taskScheduler      TaskScheduler
 	paths              Paths
 	slashCommands      SlashCommands
+	meter              metric.Meter
+	instruments        *instruments
 	TeamRouter
 }
 
@@ -42,6 +51,18 @@ type SlashCommands struct {
 	Link      string
 	Challenge string
 	Standings string
+}
+
+// instruments holds general application metrics
+type instruments struct {
+	challengeCount            metric.BoundInt64Counter
+	accountLinkInitiatedCount metric.BoundInt64Counter
+	accountLinkCompletedCount metric.BoundInt64Counter
+	updateCount               metric.BoundInt64Counter
+	totalStepsRecorded        metric.BoundInt64Counter
+	challengeParticipants     metric.BoundInt64Measure
+	challengeSteps            metric.BoundInt64Measure
+	challengeWinnerStepCount  metric.BoundInt64Measure
 }
 
 // Option is a function that applies an option to a StepCurry instance
@@ -181,7 +202,8 @@ func (stRouter *SingleTenantRouter) Route(teamID string) (svcs TeamServices, err
 
 func NewSingleTenantRouter(userInfoFinder UserInfoFinder, botIdentificator BotIdentificator, messenger Messenger, conversationMemberFinder ConversationMemberFinder) (stRouter *SingleTenantRouter, err error) {
 	stRouter = new(SingleTenantRouter)
-	stRouter.services = TeamServices{userInfoFinder: userInfoFinder, botIdentificator: botIdentificator, messenger: messenger, conversationMemberFinder: conversationMemberFinder}
+	meter := opentelemetry.MeterProvider().Meter("github.com/alexandre-normand/stepcurry")
+	stRouter.services = TeamServices{userInfoFinder: userInfoFinder, botIdentificator: botIdentificator, messenger: NewMessengerWithTelemetry(messenger, appName, meter), conversationMemberFinder: conversationMemberFinder}
 
 	return stRouter, nil
 }
@@ -212,8 +234,8 @@ func (mtRouter *MultiTenantRouter) Route(teamID string) (svcs TeamServices, err 
 		}
 
 		slackClient := slack.New(token, slack.OptionDebug(mtRouter.debug))
-
-		teamSvcs := TeamServices{userInfoFinder: slackClient, botIdentificator: FixedBotIdentificator{botUserID: botInfo.UserID}, messenger: slackClient, conversationMemberFinder: slackClient}
+		meter := opentelemetry.MeterProvider().Meter("github.com/alexandre-normand/stepcurry")
+		teamSvcs := TeamServices{userInfoFinder: slackClient, botIdentificator: FixedBotIdentificator{botUserID: botInfo.UserID}, messenger: NewMessengerWithTelemetry(slackClient, appName, meter), conversationMemberFinder: slackClient}
 		mtRouter.svcsByTeam[teamID] = teamSvcs
 	}
 
@@ -326,5 +348,37 @@ func New(baseURL string, slackAppID string, fitbitClientID string, fitbitClientS
 		return nil, fmt.Errorf("taskScheduler is nil after applying all Options. Did you forget to set one?")
 	}
 
+	sc.meter = opentelemetry.MeterProvider().Meter("github.com/alexandre-normand/stepcurry")
+	sc.instruments = newInstruments(sc.meter)
+
+	sc.verifier = NewVerifierWithTelemetry(sc.verifier, appName, sc.meter)
+	sc.storer = NewDatastorerWithTelemetry(sc.storer, appName, sc.meter)
+	sc.taskScheduler = NewTaskSchedulerWithTelemetry(sc.taskScheduler, appName, sc.meter)
+
 	return sc, nil
+}
+
+// newInstruments creates a new set of general application metrics
+func newInstruments(meter metric.Meter) *instruments {
+	defaultLabels := meter.Labels(key.New("name").String(appName))
+
+	challengeCounter := meter.NewInt64Counter("challengeCount")
+	accountLinkInitiatedCounter := meter.NewInt64Counter("accountLinkInitiatedCount")
+	accountLinkCompletedCounter := meter.NewInt64Counter("accountLinkCompletedCount")
+	updateCounter := meter.NewInt64Counter("updateCount")
+	totalStepsRecordedCounter := meter.NewInt64Counter("totalStepsRecorded")
+	challengeParticipantsMeasure := meter.NewInt64Measure("challengeParticipants")
+	challengeStepsMeasure := meter.NewInt64Measure("challengeSteps")
+	challengeWinnerStepCountMeasure := meter.NewInt64Measure("challengeWinningStepCount")
+
+	return &instruments{
+		challengeCount:            challengeCounter.Bind(defaultLabels),
+		accountLinkInitiatedCount: accountLinkInitiatedCounter.Bind(defaultLabels),
+		accountLinkCompletedCount: accountLinkCompletedCounter.Bind(defaultLabels),
+		updateCount:               updateCounter.Bind(defaultLabels),
+		totalStepsRecorded:        totalStepsRecordedCounter.Bind(defaultLabels),
+		challengeParticipants:     challengeParticipantsMeasure.Bind(defaultLabels),
+		challengeSteps:            challengeStepsMeasure.Bind(defaultLabels),
+		challengeWinnerStepCount:  challengeWinnerStepCountMeasure.Bind(defaultLabels),
+	}
 }

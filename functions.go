@@ -131,6 +131,7 @@ func (sc *StepCurry) StartFitbitOauthFlow(w http.ResponseWriter, r *http.Request
 		return newHttpError(err, "Error parsing slack request", http.StatusBadRequest)
 	}
 
+	sc.instruments.accountLinkInitiatedCount.Add(context.Background(), 1)
 	userID := params[userIDParam]
 	responseURL := params[responseURLParam]
 
@@ -283,6 +284,7 @@ func (sc *StepCurry) Challenge(w http.ResponseWriter, r *http.Request) error {
 		return newHttpError(err, "Error scheduling task", http.StatusInternalServerError)
 	}
 
+	sc.instruments.challengeCount.Add(context.Background(), 1)
 	return nil
 }
 
@@ -332,6 +334,7 @@ func (sc *StepCurry) refreshChallenge(stepsChallenge StepsChallenge) (err error)
 		}
 	}
 
+	sc.instruments.updateCount.Add(context.Background(), 1)
 	return nil
 }
 
@@ -379,6 +382,16 @@ func (sc *StepCurry) wrapUpChallenge(stepsChallenge StepsChallenge) (err error) 
 			return errors.Wrap(err, "error sending slack message")
 		}
 	}
+
+	// Record challenge metrics
+	totalChallengeSteps := 0
+	for _, p := range rankedUsers {
+		sc.instruments.totalStepsRecorded.Add(ctx, int64(p.Steps))
+		totalChallengeSteps += p.Steps
+	}
+	sc.instruments.challengeParticipants.Record(ctx, int64(len(rankedUsers)))
+	sc.instruments.challengeSteps.Record(ctx, int64(totalChallengeSteps))
+	sc.instruments.challengeWinnerStepCount.Record(ctx, int64(rankedUsers[0].Steps))
 
 	return nil
 }
