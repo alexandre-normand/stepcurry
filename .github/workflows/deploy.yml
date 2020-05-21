@@ -33,4 +33,4 @@ jobs:
           service_account_key: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}
       
       - name: Deploy functions
-        run: cd $GITHUB_WORKSPACE/cloudfunctions && ${GITHUB_WORKSPACE}/bin/landler | xargs -I % gcloud --project stepcurry functions deploy % --runtime go111 --trigger-http --allow-unauthenticated
+        run: cd $GITHUB_WORKSPACE/cloudfunctions && ${GITHUB_WORKSPACE}/bin/landler | xargs -I % gcloud --project stepcurry functions deploy % --runtime go113 --trigger-http --allow-unauthenticated
