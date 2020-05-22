@@ -3,7 +3,7 @@ package stepcurry
 import (
 	"context"
 	"fmt"
-	"github.com/nlopes/slack"
+	"github.com/slack-go/slack"
 	"github.com/pkg/errors"
 	opentelemetry "go.opentelemetry.io/otel/api/global"
 	"go.opentelemetry.io/otel/api/key"
@@ -73,7 +73,7 @@ type Verifier interface {
 	Verify(header http.Header, body []byte) (err error)
 }
 
-// SlackVerifier represents a slack verifier backed by github.com/nlopes/slack
+// SlackVerifier represents a slack verifier backed by github.com/slack-go/slack
 type SlackVerifier struct {
 	slackSigningSecret string
 }
@@ -86,7 +86,7 @@ func OptionVerifier(verifier Verifier) Option {
 	}
 }
 
-// OptionSlackVerifier sets a nlopes/slack.Client as the implementation of Verifier
+// OptionSlackVerifier sets a slack-go/slack.Client as the implementation of Verifier
 func OptionSlackVerifier(slackSigningSecret string) Option {
 	return func(sc *StepCurry) (err error) {
 		sc.verifier = &SlackVerifier{slackSigningSecret: slackSigningSecret}
@@ -97,7 +97,7 @@ func OptionSlackVerifier(slackSigningSecret string) Option {
 
 // UserInfoFinder defines the interface for getting users' info
 type UserInfoFinder interface {
-	// GetUserInfo fetches a user info by user id. See https://godoc.org/github.com/nlopes/slack#Client.GetUserInfo for more details.
+	// GetUserInfo fetches a user info by user id. See https://godoc.org/github.com/slack-go/slack#Client.GetUserInfo for more details.
 	GetUserInfo(userID string) (userInfo *slack.User, err error)
 }
 
@@ -149,13 +149,13 @@ func OptionStorer(storer Datastorer) Option {
 
 // Messenger defines the interface for sending messages
 type Messenger interface {
-	// PostMessage sends a message using the web api. See https://godoc.org/github.com/nlopes/slack#Client.PostMessage for more details
+	// PostMessage sends a message using the web api. See https://godoc.org/github.com/slack-go/slack#Client.PostMessage for more details
 	PostMessage(channelID string, options ...slack.MsgOption) (channel string, timestamp string, err error)
 }
 
 // ConversationMemberFinder defines the interface for finding members on a conversation
 type ConversationMemberFinder interface {
-	// GetUsersInConversation fetches members of a conversation. See https://godoc.org/github.com/nlopes/slack#Client.GetUsersInConversation for more details
+	// GetUsersInConversation fetches members of a conversation. See https://godoc.org/github.com/slack-go/slack#Client.GetUsersInConversation for more details
 	GetUsersInConversation(params *slack.GetUsersInConversationParameters) (members []string, cursor string, err error)
 }
 

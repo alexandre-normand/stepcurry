@@ -8,7 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/imroc/req"
-	"github.com/nlopes/slack"
+	"github.com/slack-go/slack"
 	"github.com/pkg/errors"
 	"io/ioutil"
 	"log"
@@ -248,7 +248,7 @@ func (sc *StepCurry) Challenge(w http.ResponseWriter, r *http.Request) error {
 
 	_, _, err = svcs.messenger.PostMessage(channel, slack.MsgOptionText(fmt.Sprintf("<@%s> started a steps challenge! Get moving :wind_blowing_face::athletic_shoe:. If you haven't linked your fitbit account already, type `%s` and join in on the challenge.", userID, sc.slashCommands.Link), false))
 	if err != nil {
-		// TODO: consider an additional layered fallback strategy where we use https://godoc.org/github.com/nlopes/slack#Client.JoinConversation to try and join (that would work for public channels)
+		// TODO: consider an additional layered fallback strategy where we use https://godoc.org/github.com/slack-go/slack#Client.JoinConversation to try and join (that would work for public channels)
 		// before falling back to a message with instructions
 		if err.Error() == "channel_not_found" || err.Error() == "not_in_channel" {
 			botUserID, err := svcs.botIdentificator.GetBotID()
