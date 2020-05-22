@@ -8,7 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/imroc/req"
-	"github.com/nlopes/slack"
+	"github.com/slack-go/slack"
 	"github.com/pkg/errors"
 	"google.golang.org/api/iterator"
 	"io/ioutil"
