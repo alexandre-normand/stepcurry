@@ -3,10 +3,10 @@ package stepcurry
 import (
 	"context"
 	"fmt"
-	"github.com/slack-go/slack"
 	"github.com/pkg/errors"
+	"github.com/slack-go/slack"
 	opentelemetry "go.opentelemetry.io/otel/api/global"
-	"go.opentelemetry.io/otel/api/key"
+	"go.opentelemetry.io/otel/api/kv"
 	"go.opentelemetry.io/otel/api/metric"
 	"net/http"
 )
@@ -60,9 +60,9 @@ type instruments struct {
 	accountLinkCompletedCount metric.BoundInt64Counter
 	updateCount               metric.BoundInt64Counter
 	totalStepsRecorded        metric.BoundInt64Counter
-	challengeParticipants     metric.BoundInt64Measure
-	challengeSteps            metric.BoundInt64Measure
-	challengeWinnerStepCount  metric.BoundInt64Measure
+	challengeParticipants     metric.BoundInt64ValueRecorder
+	challengeSteps            metric.BoundInt64ValueRecorder
+	challengeWinnerStepCount  metric.BoundInt64ValueRecorder
 }
 
 // Option is a function that applies an option to a StepCurry instance
@@ -360,16 +360,17 @@ func New(baseURL string, slackAppID string, fitbitClientID string, fitbitClientS
 
 // newInstruments creates a new set of general application metrics
 func newInstruments(meter metric.Meter) *instruments {
-	defaultLabels := meter.Labels(key.New("name").String(appName))
+	defaultLabels := kv.Key("name").String(appName)
+	mt := metric.Must(meter)
 
-	challengeCounter := meter.NewInt64Counter("challengeCount")
-	accountLinkInitiatedCounter := meter.NewInt64Counter("accountLinkInitiatedCount")
-	accountLinkCompletedCounter := meter.NewInt64Counter("accountLinkCompletedCount")
-	updateCounter := meter.NewInt64Counter("updateCount")
-	totalStepsRecordedCounter := meter.NewInt64Counter("totalStepsRecorded")
-	challengeParticipantsMeasure := meter.NewInt64Measure("challengeParticipants")
-	challengeStepsMeasure := meter.NewInt64Measure("challengeSteps")
-	challengeWinnerStepCountMeasure := meter.NewInt64Measure("challengeWinningStepCount")
+	challengeCounter := mt.NewInt64Counter("challengeCount")
+	accountLinkInitiatedCounter := mt.NewInt64Counter("accountLinkInitiatedCount")
+	accountLinkCompletedCounter := mt.NewInt64Counter("accountLinkCompletedCount")
+	updateCounter := mt.NewInt64Counter("updateCount")
+	totalStepsRecordedCounter := mt.NewInt64Counter("totalStepsRecorded")
+	challengeParticipantsMeasure := mt.NewInt64ValueRecorder("challengeParticipants")
+	challengeStepsMeasure := mt.NewInt64ValueRecorder("challengeSteps")
+	challengeWinnerStepCountMeasure := mt.NewInt64ValueRecorder("challengeWinningStepCount")
 
 	return &instruments{
 		challengeCount:            challengeCounter.Bind(defaultLabels),
