@@ -12,8 +12,8 @@ import (
 	"unicode"
 
 	gax "github.com/googleapis/gax-go/v2"
-	"go.opentelemetry.io/otel/api/kv"
-	"go.opentelemetry.io/otel/api/metric"
+	"go.opentelemetry.io/otel/label"
+	"go.opentelemetry.io/otel/metric"
 	taskspb "google.golang.org/genproto/googleapis/cloud/tasks/v2beta3"
 )
 
@@ -43,17 +43,17 @@ func newTaskSchedulerMethodTimeValueRecorders(appName string, meter metric.Meter
 	nConnectValRecorder := []rune("TaskScheduler_Connect_ProcessingTimeMillis")
 	nConnectValRecorder[0] = unicode.ToLower(nConnectValRecorder[0])
 	mConnect := mt.NewInt64ValueRecorder(string(nConnectValRecorder))
-	boundTimeValueRecorders["Connect"] = mConnect.Bind(kv.Key("name").String(appName))
+	boundTimeValueRecorders["Connect"] = mConnect.Bind(label.String("name", appName))
 
 	nCreateTaskValRecorder := []rune("TaskScheduler_CreateTask_ProcessingTimeMillis")
 	nCreateTaskValRecorder[0] = unicode.ToLower(nCreateTaskValRecorder[0])
 	mCreateTask := mt.NewInt64ValueRecorder(string(nCreateTaskValRecorder))
-	boundTimeValueRecorders["CreateTask"] = mCreateTask.Bind(kv.Key("name").String(appName))
+	boundTimeValueRecorders["CreateTask"] = mCreateTask.Bind(label.String("name", appName))
 
 	nGenerateQueueIDValRecorder := []rune("TaskScheduler_GenerateQueueID_ProcessingTimeMillis")
 	nGenerateQueueIDValRecorder[0] = unicode.ToLower(nGenerateQueueIDValRecorder[0])
 	mGenerateQueueID := mt.NewInt64ValueRecorder(string(nGenerateQueueIDValRecorder))
-	boundTimeValueRecorders["GenerateQueueID"] = mGenerateQueueID.Bind(kv.Key("name").String(appName))
+	boundTimeValueRecorders["GenerateQueueID"] = mGenerateQueueID.Bind(label.String("name", appName))
 
 	return boundTimeValueRecorders
 }
@@ -65,17 +65,17 @@ func newTaskSchedulerMethodCounters(suffix string, appName string, meter metric.
 	nConnectCounter := []rune("TaskScheduler_Connect_" + suffix)
 	nConnectCounter[0] = unicode.ToLower(nConnectCounter[0])
 	cConnect := mt.NewInt64Counter(string(nConnectCounter))
-	boundCounters["Connect"] = cConnect.Bind(kv.Key("name").String(appName))
+	boundCounters["Connect"] = cConnect.Bind(label.String("name", appName))
 
 	nCreateTaskCounter := []rune("TaskScheduler_CreateTask_" + suffix)
 	nCreateTaskCounter[0] = unicode.ToLower(nCreateTaskCounter[0])
 	cCreateTask := mt.NewInt64Counter(string(nCreateTaskCounter))
-	boundCounters["CreateTask"] = cCreateTask.Bind(kv.Key("name").String(appName))
+	boundCounters["CreateTask"] = cCreateTask.Bind(label.String("name", appName))
 
 	nGenerateQueueIDCounter := []rune("TaskScheduler_GenerateQueueID_" + suffix)
 	nGenerateQueueIDCounter[0] = unicode.ToLower(nGenerateQueueIDCounter[0])
 	cGenerateQueueID := mt.NewInt64Counter(string(nGenerateQueueIDCounter))
-	boundCounters["GenerateQueueID"] = cGenerateQueueID.Bind(kv.Key("name").String(appName))
+	boundCounters["GenerateQueueID"] = cGenerateQueueID.Bind(label.String("name", appName))
 
 	return boundCounters
 }

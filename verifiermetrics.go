@@ -12,8 +12,8 @@ import (
 	"time"
 	"unicode"
 
-	"go.opentelemetry.io/otel/api/kv"
-	"go.opentelemetry.io/otel/api/metric"
+	"go.opentelemetry.io/otel/label"
+	"go.opentelemetry.io/otel/metric"
 )
 
 // VerifierWithTelemetry implements Verifier interface with all methods wrapped
@@ -42,7 +42,7 @@ func newVerifierMethodTimeValueRecorders(appName string, meter metric.Meter) (bo
 	nVerifyValRecorder := []rune("Verifier_Verify_ProcessingTimeMillis")
 	nVerifyValRecorder[0] = unicode.ToLower(nVerifyValRecorder[0])
 	mVerify := mt.NewInt64ValueRecorder(string(nVerifyValRecorder))
-	boundTimeValueRecorders["Verify"] = mVerify.Bind(kv.Key("name").String(appName))
+	boundTimeValueRecorders["Verify"] = mVerify.Bind(label.String("name", appName))
 
 	return boundTimeValueRecorders
 }
@@ -54,7 +54,7 @@ func newVerifierMethodCounters(suffix string, appName string, meter metric.Meter
 	nVerifyCounter := []rune("Verifier_Verify_" + suffix)
 	nVerifyCounter[0] = unicode.ToLower(nVerifyCounter[0])
 	cVerify := mt.NewInt64Counter(string(nVerifyCounter))
-	boundCounters["Verify"] = cVerify.Bind(kv.Key("name").String(appName))
+	boundCounters["Verify"] = cVerify.Bind(label.String("name", appName))
 
 	return boundCounters
 }

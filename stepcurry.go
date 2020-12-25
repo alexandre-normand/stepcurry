@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"github.com/pkg/errors"
 	"github.com/slack-go/slack"
-	opentelemetry "go.opentelemetry.io/otel/api/global"
-	"go.opentelemetry.io/otel/api/kv"
-	"go.opentelemetry.io/otel/api/metric"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/label"
+	"go.opentelemetry.io/otel/metric"
 	"net/http"
 )
 
@@ -202,7 +202,7 @@ func (stRouter *SingleTenantRouter) Route(teamID string) (svcs TeamServices, err
 
 func NewSingleTenantRouter(userInfoFinder UserInfoFinder, botIdentificator BotIdentificator, messenger Messenger, conversationMemberFinder ConversationMemberFinder) (stRouter *SingleTenantRouter, err error) {
 	stRouter = new(SingleTenantRouter)
-	meter := opentelemetry.MeterProvider().Meter("github.com/alexandre-normand/stepcurry")
+	meter := otel.GetMeterProvider().Meter("github.com/alexandre-normand/stepcurry")
 	stRouter.services = TeamServices{userInfoFinder: userInfoFinder, botIdentificator: botIdentificator, messenger: NewMessengerWithTelemetry(messenger, appName, meter), conversationMemberFinder: conversationMemberFinder}
 
 	return stRouter, nil
@@ -234,7 +234,7 @@ func (mtRouter *MultiTenantRouter) Route(teamID string) (svcs TeamServices, err 
 		}
 
 		slackClient := slack.New(token, slack.OptionDebug(mtRouter.debug))
-		meter := opentelemetry.MeterProvider().Meter("github.com/alexandre-normand/stepcurry")
+		meter := otel.GetMeterProvider().Meter("github.com/alexandre-normand/stepcurry")
 		teamSvcs := TeamServices{userInfoFinder: slackClient, botIdentificator: FixedBotIdentificator{botUserID: botInfo.UserID}, messenger: NewMessengerWithTelemetry(slackClient, appName, meter), conversationMemberFinder: slackClient}
 		mtRouter.svcsByTeam[teamID] = teamSvcs
 	}
@@ -348,7 +348,7 @@ func New(baseURL string, slackAppID string, fitbitClientID string, fitbitClientS
 		return nil, fmt.Errorf("taskScheduler is nil after applying all Options. Did you forget to set one?")
 	}
 
-	sc.meter = opentelemetry.MeterProvider().Meter("github.com/alexandre-normand/stepcurry")
+	sc.meter = otel.GetMeterProvider().Meter("github.com/alexandre-normand/stepcurry")
 	sc.instruments = newInstruments(sc.meter)
 
 	sc.verifier = NewVerifierWithTelemetry(sc.verifier, appName, sc.meter)
@@ -360,7 +360,7 @@ func New(baseURL string, slackAppID string, fitbitClientID string, fitbitClientS
 
 // newInstruments creates a new set of general application metrics
 func newInstruments(meter metric.Meter) *instruments {
-	defaultLabels := kv.Key("name").String(appName)
+	defaultLabels := label.String("name", appName)
 	mt := metric.Must(meter)
 
 	challengeCounter := mt.NewInt64Counter("challengeCount")
