@@ -12,8 +12,8 @@ import (
 	"unicode"
 
 	"github.com/slack-go/slack"
-	"go.opentelemetry.io/otel/api/kv"
-	"go.opentelemetry.io/otel/api/metric"
+	"go.opentelemetry.io/otel/label"
+	"go.opentelemetry.io/otel/metric"
 )
 
 // MessengerWithTelemetry implements Messenger interface with all methods wrapped
@@ -42,7 +42,7 @@ func newMessengerMethodTimeValueRecorders(appName string, meter metric.Meter) (b
 	nPostMessageValRecorder := []rune("Messenger_PostMessage_ProcessingTimeMillis")
 	nPostMessageValRecorder[0] = unicode.ToLower(nPostMessageValRecorder[0])
 	mPostMessage := mt.NewInt64ValueRecorder(string(nPostMessageValRecorder))
-	boundTimeValueRecorders["PostMessage"] = mPostMessage.Bind(kv.Key("name").String(appName))
+	boundTimeValueRecorders["PostMessage"] = mPostMessage.Bind(label.String("name", appName))
 
 	return boundTimeValueRecorders
 }
@@ -54,7 +54,7 @@ func newMessengerMethodCounters(suffix string, appName string, meter metric.Mete
 	nPostMessageCounter := []rune("Messenger_PostMessage_" + suffix)
 	nPostMessageCounter[0] = unicode.ToLower(nPostMessageCounter[0])
 	cPostMessage := mt.NewInt64Counter(string(nPostMessageCounter))
-	boundCounters["PostMessage"] = cPostMessage.Bind(kv.Key("name").String(appName))
+	boundCounters["PostMessage"] = cPostMessage.Bind(label.String("name", appName))
 
 	return boundCounters
 }
