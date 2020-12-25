@@ -12,47 +12,49 @@ import (
 	"time"
 	"unicode"
 
-	"go.opentelemetry.io/otel/api/key"
+	"go.opentelemetry.io/otel/api/kv"
 	"go.opentelemetry.io/otel/api/metric"
 )
 
 // VerifierWithTelemetry implements Verifier interface with all methods wrapped
 // with open telemetry metrics
 type VerifierWithTelemetry struct {
-	base               Verifier
-	methodCounters     map[string]metric.BoundInt64Counter
-	errCounters        map[string]metric.BoundInt64Counter
-	methodTimeMeasures map[string]metric.BoundInt64Measure
+	base                     Verifier
+	methodCounters           map[string]metric.BoundInt64Counter
+	errCounters              map[string]metric.BoundInt64Counter
+	methodTimeValueRecorders map[string]metric.BoundInt64ValueRecorder
 }
 
 // NewVerifierWithTelemetry returns an instance of the Verifier decorated with open telemetry timing and count metrics
 func NewVerifierWithTelemetry(base Verifier, name string, meter metric.Meter) VerifierWithTelemetry {
 	return VerifierWithTelemetry{
-		base:               base,
-		methodCounters:     newVerifierMethodCounters("Calls", name, meter),
-		errCounters:        newVerifierMethodCounters("Errors", name, meter),
-		methodTimeMeasures: newVerifierMethodTimeMeasures(name, meter),
+		base:                     base,
+		methodCounters:           newVerifierMethodCounters("Calls", name, meter),
+		errCounters:              newVerifierMethodCounters("Errors", name, meter),
+		methodTimeValueRecorders: newVerifierMethodTimeValueRecorders(name, meter),
 	}
 }
 
-func newVerifierMethodTimeMeasures(appName string, meter metric.Meter) (boundTimeMeasures map[string]metric.BoundInt64Measure) {
-	boundTimeMeasures = make(map[string]metric.BoundInt64Measure)
+func newVerifierMethodTimeValueRecorders(appName string, meter metric.Meter) (boundTimeValueRecorders map[string]metric.BoundInt64ValueRecorder) {
+	boundTimeValueRecorders = make(map[string]metric.BoundInt64ValueRecorder)
+	mt := metric.Must(meter)
 
-	nVerifyMeasure := []rune("Verifier_Verify_ProcessingTimeMillis")
-	nVerifyMeasure[0] = unicode.ToLower(nVerifyMeasure[0])
-	mVerify := meter.NewInt64Measure(string(nVerifyMeasure), metric.WithKeys(key.New("name")))
-	boundTimeMeasures["Verify"] = mVerify.Bind(meter.Labels(key.New("name").String(appName)))
+	nVerifyValRecorder := []rune("Verifier_Verify_ProcessingTimeMillis")
+	nVerifyValRecorder[0] = unicode.ToLower(nVerifyValRecorder[0])
+	mVerify := mt.NewInt64ValueRecorder(string(nVerifyValRecorder))
+	boundTimeValueRecorders["Verify"] = mVerify.Bind(kv.Key("name").String(appName))
 
-	return boundTimeMeasures
+	return boundTimeValueRecorders
 }
 
 func newVerifierMethodCounters(suffix string, appName string, meter metric.Meter) (boundCounters map[string]metric.BoundInt64Counter) {
 	boundCounters = make(map[string]metric.BoundInt64Counter)
+	mt := metric.Must(meter)
 
 	nVerifyCounter := []rune("Verifier_Verify_" + suffix)
 	nVerifyCounter[0] = unicode.ToLower(nVerifyCounter[0])
-	cVerify := meter.NewInt64Counter(string(nVerifyCounter), metric.WithKeys(key.New("name")))
-	boundCounters["Verify"] = cVerify.Bind(meter.Labels(key.New("name").String(appName)))
+	cVerify := mt.NewInt64Counter(string(nVerifyCounter))
+	boundCounters["Verify"] = cVerify.Bind(kv.Key("name").String(appName))
 
 	return boundCounters
 }
@@ -69,7 +71,7 @@ func (_d VerifierWithTelemetry) Verify(header http.Header, body []byte) (err err
 		methodCounter := _d.methodCounters["Verify"]
 		methodCounter.Add(context.Background(), 1)
 
-		methodTimeMeasure := _d.methodTimeMeasures["Verify"]
+		methodTimeMeasure := _d.methodTimeValueRecorders["Verify"]
 		methodTimeMeasure.Record(context.Background(), time.Since(_since).Milliseconds())
 	}()
 	return _d.base.Verify(header, body)
