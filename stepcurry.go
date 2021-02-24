@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"github.com/pkg/errors"
 	"github.com/slack-go/slack"
-	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/label"
 	"go.opentelemetry.io/otel/metric"
+	otel "go.opentelemetry.io/otel/metric/global"
 	"net/http"
 )
 
